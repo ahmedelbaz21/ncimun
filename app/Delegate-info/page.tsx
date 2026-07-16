@@ -59,7 +59,10 @@ const { data: delegateData, error: delegateError } =
     .from('Delegate_BusRoutes')
     .select('*')
     .eq('DelegateID', delegateData.DelegateID)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
 
   if (!selection) {
     setBusRoutes([

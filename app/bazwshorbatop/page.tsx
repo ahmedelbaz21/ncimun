@@ -84,7 +84,7 @@ export default function WeekBAttendanceAdmin() {
         <div className="flex flex-col items-center mb-8">
           <header className="dashboard-header">
                   <Image src="/logo.png" alt="NCIMUN Logo" width={60} height={60} />
-                  <h1>Week B Attendance</h1>
+                  <h1>Week C Attendance</h1>
            </header>
           <div className="flex justify-center mt-6">
             <div className="flex justify-center items-center gap-3 flex-wrap">
