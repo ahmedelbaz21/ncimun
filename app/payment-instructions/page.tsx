@@ -146,6 +146,18 @@ export default function PaymentPage({
         .eq('id', registrationId);
 
       if (regError) throw new Error(regError.message);
+      // Increment transport count if delegate needs transport
+      const { data: regData } = await supabase
+        .from('registrations')
+        .select('transport_route_id, needs_transport')
+        .eq('id', registrationId)
+        .single();
+
+      if (regData?.needs_transport && regData?.transport_route_id) {
+        await supabase.rpc('increment_transport_count', {
+          route_id: regData.transport_route_id
+        });
+      }
 
       // 3. Allocate council via DB function
       const { data: allocResult, error: allocError } = await supabase
