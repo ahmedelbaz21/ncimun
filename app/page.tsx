@@ -122,7 +122,7 @@ export default function HomePage() {
 
             <p className="hero-body">
               The New Capital's first international Model UN simulation.
-              Seven days. Five councils. One unforgettable experience.
+              An unforgettable experience.
             </p>
 
             <div className="hero-actions">

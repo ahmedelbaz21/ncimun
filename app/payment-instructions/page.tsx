@@ -121,19 +121,19 @@ export default function PaymentPage({
 
     try {
       // 1. Upload screenshot to Supabase Storage
-      const formData = new FormData();
-      formData.append('screenshot', screenshot);
-      formData.append('delegate_id', profile.delegate_id);
-      formData.append('conference_slug', conferenceSlug);
-      formData.append('payment_method', paymentMethod);
+      // Upload directly to Supabase Storage
+      const ext = screenshot.name.split('.').pop() || 'jpg';
+      const fileName = `${conferenceSlug}/${profile.delegate_id}_${paymentMethod}_${Date.now()}.${ext}`;
 
-      const uploadRes = await fetch('/api/upload-payment', {
-        method: 'POST',
-        body: formData,
-      });
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payment-screenshots')
+        .upload(fileName, screenshot, {
+          contentType: screenshot.type,
+          upsert: false,
+        });
 
-      if (!uploadRes.ok) throw new Error('Screenshot upload failed. Please try again.');
-      const { storagePath } = await uploadRes.json();
+      if (uploadError) throw new Error('Screenshot upload failed. Please try again.');
+      const storagePath = uploadData.path;
 
       // 2. Mark registration as paid
       const { error: regError } = await supabase
