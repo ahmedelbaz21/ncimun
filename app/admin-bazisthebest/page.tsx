@@ -276,14 +276,18 @@ export default function AdminDashboard() {
                   </td>
                   <td>
                     {reg.payment_drive_url ? (
-                      <a
-                        href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/payment-screenshots/${reg.payment_drive_url}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ad-link"
-                      >
-                        View
-                      </a>
+                      <button
+  className="ad-link"
+  onClick={async () => {
+    if (!reg.payment_drive_url) return;
+    const { data } = await supabase.storage
+      .from('payment-screenshots')
+      .createSignedUrl(reg.payment_drive_url, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }}
+>
+  View
+</button>
                     ) : '—'}
                   </td>
                   <td>
