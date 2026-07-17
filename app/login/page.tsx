@@ -34,7 +34,18 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = '/conferences';
+    // Check account type and redirect accordingly
+      const { data: userData } = await supabase
+        .from('users')
+        .select('account_type')
+        .eq('email', email)
+        .single();
+
+      if (userData?.account_type === 'team') {
+        window.location.href = '/team-portal';
+      } else {
+        window.location.href = '/conferences';
+      }
   };
 
   return (
