@@ -63,11 +63,11 @@ export default function ContactPage() {
               </div>
             </a>
 
-            <a href="mailto:ncimun@gmail.com" className="cp-contact-item">
+            <a href="mailto:ncimun.eg@gmail.com" className="cp-contact-item">
               <div className="cp-contact-icon">✉️</div>
               <div>
                 <span className="cp-contact-label">Email</span>
-                <span className="cp-contact-value">ncimun@gmail.com</span>
+                <span className="cp-contact-value">ncimun.eg@gmail.com</span>
               </div>
             </a>
 

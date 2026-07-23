@@ -39,7 +39,7 @@ const FAQS: { category: string; items: FAQ[] }[] = [
       },
       {
         q: 'I paid but didn\'t receive a confirmation — what do I do?',
-        a: 'Make sure you uploaded your payment screenshot on the portal after completing the transfer.you find theportal in your profile under "My Tickets". If you did and still haven\'t received confirmation, contact us at ncimun@gmail.com or 010 3162 3162.',
+        a: 'Make sure you uploaded your payment screenshot on the portal after completing the transfer.you find theportal in your profile under "My Tickets". If you did and still haven\'t received confirmation, contact us at ncimun.eg@gmail.com or 010 3162 3162.',
       },
       {
         q: 'What is the refund policy?',
@@ -77,7 +77,7 @@ const FAQS: { category: string; items: FAQ[] }[] = [
       },
       {
         q: 'Can I change my pickup point after registering?',
-        a: 'Pickup point changes are subject to availability. Contact us at ncimun@gmail.com or 010 3162 3162 as soon as possible and we\'ll try to accommodate the change.',
+        a: 'Pickup point changes are subject to availability. Contact us at ncimun.eg@gmail.com or 010 3162 3162 as soon as possible and we\'ll try to accommodate the change.',
       },
     ],
   },
@@ -111,7 +111,7 @@ const FAQS: { category: string; items: FAQ[] }[] = [
       },
       {
         q: 'How do I contact the NCIMUN team?',
-        a: 'You can reach us by email at ncimun@gmail.com, by phone at 010 3162 3162, or via Instagram @ncimun_tkh. We\'re also available through the Contact page on this portal.',
+        a: 'You can reach us by email at ncimun.eg@gmail.com, by phone at 010 3162 3162, or via Instagram @ncimun_tkh. We\'re also available through the Contact page on this portal.',
       },
     ],
   },

@@ -119,7 +119,7 @@ export default function TransportationPage() {
             <li>Transportation must be selected during registration and cannot be changed afterwards without contacting us.</li>
             <li>Pickup points marked as <strong>TBD</strong> will be confirmed before the conference starts.</li>
             {/* <li>Spots per route are limited and allocated on a first-come, first-served basis.</li> */}
-            <li>For questions about transportation, contact us at <a href="mailto:ncimun@gmail.com">ncimun@gmail.com</a> or <a href="tel:01031623162">010 3162 3162</a>.</li>
+            <li>For questions about transportation, contact us at <a href="mailto:ncimun.eg@gmail.com">ncimun.eg@gmail.com</a> or <a href="tel:01031623162">010 3162 3162</a>.</li>
           </ul>
         </div>
 

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     await resend.emails.send({
       from: 'NCIMUN Contact <onboarding@resend.dev>',
-      to: 'ncimun@gmail.com',
+      to: 'ncimun.eg@gmail.com',
       replyTo: email,
       subject: `New message from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
