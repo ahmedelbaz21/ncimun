@@ -3,17 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.BREVO_HOST,
-  port: Number(process.env.BREVO_PORT),
-  secure: false,
+  service: 'gmail',
   auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
   },
 });
 
 const PENDING_DELEGATES = [
-  { first_name: 'Ahmed', email: 'ahmedelbaz00758@gmail.com' },
+  { first_name: 'Ahmed', email: 'ncimun.eg@gmail.com' },
 ];
 
 export async function POST(req: NextRequest) {
