@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const PENDING_DELEGATES = [
-  { first_name: 'Ahmed', email: 'ahmednaserelbaz@gmail.com' },
+  { first_name: 'Ahmed', email: 'ahmedelbaz00758@gmail.com' },
 ];
 
 export async function POST(req: NextRequest) {
