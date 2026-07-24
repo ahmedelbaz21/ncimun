@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       await transporter.sendMail({
         from: `NCIMUN <${process.env.GMAIL_USER}>`,
         to: delegate.email,
-        subject: '⏳ Early Bird Deadline Almost Over — Complete Your Payment',
+        subject: 'Early Bird Deadline Almost Over — Complete Your Payment',
         html: `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:2rem;color:#23272A;">
             <div style="background:#23272A;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:inline-block;">
