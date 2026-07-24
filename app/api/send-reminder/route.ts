@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.BREVO_HOST,
+  port: Number(process.env.BREVO_PORT),
+  secure: false,
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS,
   },
 });
 
@@ -20,7 +22,7 @@ export async function POST(req: NextRequest) {
   for (const delegate of PENDING_DELEGATES) {
     try {
       await transporter.sendMail({
-        from: `NCIMUN <${process.env.GMAIL_USER}>`,
+        from: `from: '"NCIMUN Summer Camp" <ncimun.eg@gmail.com>',`,
         to: delegate.email,
         subject: 'Early Bird Deadline Almost Over — Complete Your Payment',
         html: `
