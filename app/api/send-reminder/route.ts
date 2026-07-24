@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   for (const delegate of PENDING_DELEGATES) {
     try {
       await transporter.sendMail({
-        from: `from: '"NCIMUN Summer Camp" <ncimun.eg@gmail.com>',`,
+        from: '"NCIMUN Summer Camp" <ncimun.eg@gmail.com>',
         to: delegate.email,
         subject: 'Early Bird Deadline Almost Over — Complete Your Payment',
         html: `
