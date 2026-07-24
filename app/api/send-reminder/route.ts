@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
             </div>
 
             <h1 style="font-size:1.4rem;font-weight:900;margin:0 0 1rem;color:#23272A;">
-              Hi ${delegate.first_name}, your spot is waiting! 🎟
+              Hi there, your spot is waiting! 🎟
             </h1>
 
             <p style="font-size:.9375rem;line-height:1.7;color:#444;margin-bottom:1rem;">
