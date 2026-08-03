@@ -197,7 +197,7 @@ function ConferenceCard({ conf, isRegistered, isLoggedIn, onGetTickets }: {
   return (
     <div className={`cc-card ${isActive ? 'cc-card--active' : ''} ${isComingSoon ? 'cc-card--soon' : ''}`}>
 
-      {/* ── Mattel-style scalloped badge ── */}
+     {/*   ── Mattel-style scalloped badge ── 
       {isSummerCamp && isActive && !isRegistered && (
         <div className="cc-sticker">
           <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" className="cc-sticker-bg">
@@ -224,7 +224,7 @@ function ConferenceCard({ conf, isRegistered, isLoggedIn, onGetTickets }: {
             <span className="cc-sticker-line2">Bird!</span>
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="cc-top">
         {isRegistered && <span className="cc-badge cc-badge--registered">✓ Registered</span>}
@@ -249,8 +249,7 @@ function ConferenceCard({ conf, isRegistered, isLoggedIn, onGetTickets }: {
           {isSummerCamp ? (
             <div className="cc-detail">
               <span className="cc-icon">🎟</span>
-              <span className="cc-price-old">3,000 EGP</span>
-              <span className="cc-price-new">2,750 EGP</span>
+              <span>3,000 EGP</span>
             </div>
           ) : conf.price ? (
             <div className="cc-detail">
