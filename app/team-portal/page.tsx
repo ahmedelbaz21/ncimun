@@ -65,17 +65,20 @@ export default function TeamPortalPage() {
   const fetchDelegate = async (delegateId: string): Promise<Delegate | null> => {
     let cleanId = delegateId.trim().toUpperCase();
     if (!cleanId.startsWith('D-')) cleanId = 'D-' + cleanId;
+
     const { data: profile } = await supabase
       .from('delegate_profiles')
       .select('id, delegate_id, first_name, last_name, phone, school, grade, emergency_contacts(name, relation, phone)')
       .eq('delegate_id', cleanId)
       .single();
     if (!profile) return null;
+
     const { data: reg } = await supabase
       .from('registrations')
       .select('id, payment_status, needs_transport, allocated_council:councils!registrations_allocated_council_id_fkey(name), transport_routes(location_name)')
       .eq('delegate_id', profile.id)
       .single();
+
     return {
       id: profile.id,
       delegate_id: profile.delegate_id,
@@ -115,7 +118,14 @@ export default function TeamPortalPage() {
         return;
       }
 
-      const { data: existing } = await supabase.from('delegate_attendance').select('id, created_at').eq('delegate_profile_id', delegate.id).eq('date', today).eq('type', actionType).single();
+      const { data: existing } = await supabase
+        .from('delegate_attendance')
+        .select('id, created_at')
+        .eq('delegate_profile_id', delegate.id)
+        .eq('date', today)
+        .eq('type', actionType)
+        .single();
+
       if (existing) {
         const time = new Date(existing.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         setResult({ type: 'warning', delegate, message: `Already marked ${actionType} today at ${time}.` });
@@ -136,12 +146,26 @@ export default function TeamPortalPage() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        }
+      });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
+        await videoRef.current.play();
+      }
       setScanning(true);
       scanFrame();
-    } catch { alert('Camera access denied. Use manual ID entry.'); }
+    } catch (err: any) {
+      alert(`Camera error: ${err.message}. Please use manual ID entry.`);
+    }
   };
 
   const scanFrame = () => {
@@ -175,7 +199,6 @@ export default function TeamPortalPage() {
   };
 
   const resetView = () => { setView('home'); setResult(null); setManualId(''); stopCamera(); };
-
   const handleLogout = async () => { await supabase.auth.signOut(); router.push('/login'); };
 
   if (loading) return <main className="tp-root"><div className="tp-loading">Loading…</div><style>{STYLES}</style></main>;
@@ -253,7 +276,6 @@ export default function TeamPortalPage() {
               )}
               {result.message && <p className="tp-result-msg">{result.message}</p>}
 
-              {/* Full info for info view */}
               {view === 'info' && result.delegate && (
                 <div className="tp-info-card">
                   <div className="tp-info-grid">
@@ -278,7 +300,13 @@ export default function TeamPortalPage() {
 
           {scanning ? (
             <div className="tp-camera-wrap">
-              <video ref={videoRef} className="tp-camera" playsInline muted />
+              <video
+                ref={videoRef}
+                className="tp-camera"
+                playsInline
+                muted
+                autoPlay
+              />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               <div className="tp-camera-overlay">
                 <div className="tp-camera-frame" />
@@ -301,7 +329,7 @@ export default function TeamPortalPage() {
                 type="text"
                 value={manualId}
                 onChange={e => setManualId(e.target.value.toUpperCase())}
-                placeholder="D-26001"
+                placeholder="26001"
                 onKeyDown={e => e.key === 'Enter' && handleScan(manualId, actionType)}
               />
               <button className="tp-btn-submit" onClick={() => handleScan(manualId, actionType)} disabled={!manualId || processing}>
@@ -347,13 +375,8 @@ const STYLES = `
   .tp-stat--blue .tp-stat-number{color:var(--blue);}
   .tp-stat-label{display:block;font-size:.6875rem;font-weight:600;color:var(--gray-600);margin-top:.2rem;text-transform:uppercase;letter-spacing:.04em;}
 
-  /* Square action buttons */
   .tp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:.875rem;}
-  .tp-action-btn{
-    aspect-ratio:1; display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;
-    border-radius:16px;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;
-    font-family:var(--font); padding:1rem;
-  }
+  .tp-action-btn{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;border-radius:16px;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;font-family:var(--font);padding:1rem;}
   .tp-action-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
   .tp-action-btn--attendance{background:var(--green);color:var(--white);}
   .tp-action-btn--meal{background:var(--blue);color:var(--white);}
@@ -394,9 +417,10 @@ const STYLES = `
 
   .tp-btn-camera{width:100%;padding:1rem;border-radius:12px;background:var(--black);color:var(--white);border:none;font-family:var(--font);font-size:.9375rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;}
   .tp-btn-camera:hover{opacity:.85;}
-  .tp-camera-wrap{position:relative;border-radius:12px;overflow:hidden;}
-  .tp-camera{width:100%;border-radius:12px;display:block;}
-  .tp-camera-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+
+  .tp-camera-wrap{position:relative;border-radius:12px;overflow:hidden;background:#000;}
+  .tp-camera{width:100%;display:block;max-height:60vh;object-fit:cover;}
+  .tp-camera-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;pointer-events:none;}
   .tp-camera-frame{width:200px;height:200px;border:3px solid var(--aqua);border-radius:12px;box-shadow:0 0 0 9999px rgba(35,39,42,.5);}
   .tp-camera-hint{color:var(--white);font-size:.875rem;font-weight:600;}
   .tp-btn-stop{width:100%;padding:.75rem;background:var(--red);color:var(--white);border:none;border-radius:8px;font-family:var(--font);font-size:.875rem;font-weight:700;cursor:pointer;margin-top:.5rem;}
