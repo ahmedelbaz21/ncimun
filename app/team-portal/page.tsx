@@ -145,29 +145,30 @@ export default function TeamPortalPage() {
   };
 
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        }
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('muted', 'true');
-        videoRef.current.setAttribute('autoplay', 'true');
-        await videoRef.current.play();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
       }
-      setScanning(true);
-      scanFrame();
-    } catch (err: any) {
-      alert(`Camera error: ${err.message}. Please use manual ID entry.`);
+    });
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      // Force play after short delay for mobile
+      setTimeout(async () => {
+        try {
+          await videoRef.current?.play();
+        } catch (e) {
+          console.log('Play error:', e);
+        }
+      }, 100);
     }
-  };
-
+    setScanning(true);
+    setTimeout(() => scanFrame(), 500);
+  } catch (err: any) {
+    alert(`Camera error: ${err.message}`);
+  }
+};
   const scanFrame = () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
@@ -306,7 +307,8 @@ export default function TeamPortalPage() {
                 playsInline
                 muted
                 autoPlay
-              />
+                onLoadedMetadata={() => videoRef.current?.play()}
+                />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               <div className="tp-camera-overlay">
                 <div className="tp-camera-frame" />
