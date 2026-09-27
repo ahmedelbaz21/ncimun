@@ -59,7 +59,7 @@ export default function AdminDashboard() {
     const { data: conf } = await supabase
       .from('conferences')
       .select('id')
-      .eq('slug', 'summer-camp-2026')
+      .eq('slug', 'volume-7-part-1')
       .single();
 
     if (!conf) { setLoading(false); return; }

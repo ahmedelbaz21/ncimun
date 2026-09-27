@@ -16,28 +16,18 @@ export default function CouncilsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      // Get summer camp conference id
-      const { data: conf } = await supabase
-        .from('conferences')
-        .select('id')
-        .eq('slug', 'summer-camp-2026')
-        .single();
+  const load = async () => {
+    const { data } = await supabase
+      .from('conference_councils')
+      .select('councils(id, name, abbreviation, description)')
+      .eq('conference_id', 2)
+      .order('id');
 
-      if (!conf) { setLoading(false); return; }
-
-      // Get councils linked to summer camp only
-      const { data } = await supabase
-        .from('conference_councils')
-        .select('councils(id, name, abbreviation, description)')
-        .eq('conference_id', conf.id)
-        .order('id');
-
-      if (data) setCouncils(data.map((d: any) => d.councils).filter(Boolean));
-      setLoading(false);
-    };
-    load();
-  }, []);
+    if (data) setCouncils(data.map((d: any) => d.councils).filter(Boolean));
+    setLoading(false);
+  };
+  load();
+}, []);
 
   const colors = [
     { bg: 'rgba(95,150,202,.08)', border: '#5F96CA', text: '#5F96CA' },
@@ -62,12 +52,10 @@ export default function CouncilsPage() {
       {/* ── Header ── */}
       <div className="co-header">
         <div className="co-header-inner">
-          <p className="co-eyebrow">NCIMUN Summer Camp 2026</p>
+          <p className="co-eyebrow">NCIMUN Volume 7</p>
           <h1 className="co-title">Councils</h1>
           <p className="co-subtitle">
-            This summer, five unique councils tackle some of the most thought-provoking issues
-            ever debated at NCIMUN. From zombie apocalypses to golden billions —
-            which side will you represent?
+            12 councils across international law, security, human rights, environment, and social policy. choose your preference when you register.
           </p>
         </div>
       </div>
