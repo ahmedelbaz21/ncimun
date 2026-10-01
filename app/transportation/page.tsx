@@ -55,7 +55,7 @@ export default function TransportationPage() {
       {/* ── Header ── */}
       <div className="tr-header">
         <div className="tr-header-inner">
-          <p className="tr-eyebrow">NCIMUN Summer Camp 2026</p>
+          <p className="tr-eyebrow">NCIMUN 2026</p>
           <h1 className="tr-title">Transportation</h1>
           <p className="tr-subtitle">
             We offer bus pickup from several locations across Cairo.
@@ -125,7 +125,7 @@ export default function TransportationPage() {
 
         <div className="tr-cta">
           <p className="tr-cta-text">Ready to secure your spot?</p>
-          <Link href="/conferences" className="tr-btn-primary">Register for Summer Camp →</Link>
+          <Link href="/conferences" className="tr-btn-primary">Register Now →</Link>
         </div>
       </div>
 

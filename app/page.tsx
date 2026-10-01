@@ -237,7 +237,7 @@ export default function HomePage() {
           </div>
           <div className="footer-cols">
             <div className="footer-col">
-              <span className="footer-col-title">Summer Camp</span>
+              <span className="footer-col-title">Conferences</span>
               <Link href="/conferences">Register</Link>
               <Link href="/councils">Councils</Link>
               <Link href="/transportation">Transportation</Link>

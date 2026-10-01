@@ -28,6 +28,7 @@ export default function PaymentPage({
   const [registrationId, setRegistrationId] = useState<number | null>(null);
   const [allocatedCouncil, setAllocatedCouncil] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [transportFee, setTransportFee] = useState<number>(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -53,19 +54,28 @@ export default function PaymentPage({
         if (confData) {
           setConference(confData);
 
-          // Check if already paid
           if (profileData) {
             const { data: reg } = await supabase
               .from('registrations')
-              .select('id, payment_status, allocated_council_id')
+              .select('id, payment_status, allocated_council_id, needs_transport, transport_route_id')
               .eq('delegate_id', profileData.id)
               .eq('conference_id', confData.id)
               .single();
 
             if (reg) {
               setRegistrationId(reg.id);
+
+              // Fetch transport fee if applicable
+              if (reg.needs_transport && reg.transport_route_id) {
+                const { data: route } = await supabase
+                  .from('transport_routes')
+                  .select('price')
+                  .eq('id', reg.transport_route_id)
+                  .single();
+                if (route?.price) setTransportFee(route.price);
+              }
+
               if (reg.payment_status === 'paid') {
-                // Already paid — fetch council and generate QR
                 await fetchCouncilAndQR(reg.id, profileData, confData, reg.allocated_council_id);
                 setDone(true);
               }
@@ -89,7 +99,6 @@ export default function PaymentPage({
     }
     setAllocatedCouncil(councilName);
 
-    // Generate QR code
     const qrContent = JSON.stringify({
       delegate_id: prof.delegate_id,
       name: `${prof.first_name} ${prof.last_name}`,
@@ -120,8 +129,6 @@ export default function PaymentPage({
     setError('');
 
     try {
-      // 1. Upload screenshot to Supabase Storage
-      // Upload directly to Supabase Storage
       const ext = screenshot.name.split('.').pop() || 'jpg';
       const fileName = `${conferenceSlug}/${profile.delegate_id}_${paymentMethod}_${Date.now()}.${ext}`;
 
@@ -135,7 +142,6 @@ export default function PaymentPage({
       if (uploadError) throw new Error('Screenshot upload failed. Please try again.');
       const storagePath = uploadData.path;
 
-      // 2. Mark registration as paid
       const { error: regError } = await supabase
         .from('registrations')
         .update({
@@ -146,7 +152,7 @@ export default function PaymentPage({
         .eq('id', registrationId);
 
       if (regError) throw new Error(regError.message);
-      // Increment transport count if delegate needs transport
+
       const { data: regData } = await supabase
         .from('registrations')
         .select('transport_route_id, needs_transport')
@@ -159,7 +165,6 @@ export default function PaymentPage({
         });
       }
 
-      // 3. Allocate council via DB function
       const { data: allocResult, error: allocError } = await supabase
         .rpc('allocate_council', { registration_id: registrationId });
 
@@ -167,10 +172,8 @@ export default function PaymentPage({
 
       if (allocResult === 'full') {
         setCouncilFull(true);
-        // Still show success but notify about council
         await fetchCouncilAndQR(registrationId, profile, conference, null);
       } else {
-        // Fetch the updated registration to get allocated council
         const { data: updatedReg } = await supabase
           .from('registrations')
           .select('allocated_council_id')
@@ -201,12 +204,12 @@ export default function PaymentPage({
     a.click();
   };
 
-  // ── Success / Ticket screen ──
+  const totalAmount = (conference?.price ?? 0) + transportFee;
+
   if (done) {
     return (
       <main className="pp-root">
         <div className="pp-ticket-wrap">
-          {/* Header */}
           <div className="pp-ticket-header">
             <div className="pp-success-icon">✓</div>
             <h1 className="pp-success-title">
@@ -214,12 +217,11 @@ export default function PaymentPage({
             </h1>
             <p className="pp-success-desc">
               {councilFull
-                ? 'Both your council preferences are full. We\'ll contact you shortly to arrange an alternative.'
+                ? "Both your council preferences are full. We'll contact you shortly to arrange an alternative."
                 : `Your registration for ${conference?.title} is confirmed.`}
             </p>
           </div>
 
-          {/* Ticket */}
           <div className="pp-ticket">
             <div className="pp-ticket-left">
               <div className="pp-ticket-logo">
@@ -250,7 +252,6 @@ export default function PaymentPage({
             <div className="pp-ticket-notch pp-ticket-notch--bottom" />
           </div>
 
-          {/* Actions */}
           <div className="pp-ticket-actions">
             <button className="pp-btn-primary" onClick={handleDownloadQR}>
               ↓ Download ticket
@@ -283,7 +284,6 @@ export default function PaymentPage({
       </div>
 
       <div className="pp-layout">
-        {/* ── Left: Payment details ── */}
         <div className="pp-details">
           <div className="pp-card">
             <h2 className="pp-card-title">Your registration</h2>
@@ -303,10 +303,22 @@ export default function PaymentPage({
               <span className="pp-info-label">Conference</span>
               <span className="pp-info-value">{conference?.title || '—'}</span>
             </div>
-            <div className="pp-info-row pp-info-row--total">
-              <span className="pp-info-label">Amount due</span>
-              <span className="pp-info-value pp-info-value--price">
+            <div className="pp-info-row">
+              <span className="pp-info-label">Conference fee</span>
+              <span className="pp-info-value">
                 {conference?.price ? `${conference.price.toLocaleString()} EGP` : '—'}
+              </span>
+            </div>
+            {transportFee > 0 && (
+              <div className="pp-info-row">
+                <span className="pp-info-label">Transport fee</span>
+                <span className="pp-info-value">{transportFee.toLocaleString()} EGP</span>
+              </div>
+            )}
+            <div className="pp-info-row pp-info-row--total">
+              <span className="pp-info-label">Total amount due</span>
+              <span className="pp-info-value pp-info-value--price">
+                {conference?.price ? `${totalAmount.toLocaleString()} EGP` : '—'}
               </span>
             </div>
           </div>
@@ -336,7 +348,6 @@ export default function PaymentPage({
           </div>
         </div>
 
-        {/* ── Right: Upload form ── */}
         <form className="pp-form" onSubmit={handleSubmit}>
           <div className="pp-card">
             <h2 className="pp-card-title">Confirm your payment</h2>
@@ -451,7 +462,7 @@ const STYLES = `
     padding: .6rem 0; border-bottom: 1px solid var(--gray-200); gap: 1rem;
   }
   .pp-info-row:last-of-type { border-bottom: none; }
-  .pp-info-row--total { border-top: 2px solid var(--gray-200); margin-top: .25rem; padding-top: .75rem; }
+  .pp-info-row--total { border-top: 2px solid var(--gray-200); margin-top: .25rem; padding-top: .75rem; border-bottom: none; }
   .pp-info-label { font-size: .8125rem; color: var(--gray-600); }
   .pp-info-value { font-size: .875rem; font-weight: 600; text-align: right; }
   .pp-info-value--highlight { color: var(--blue); font-size: 1rem; font-weight: 800; }
@@ -464,6 +475,7 @@ const STYLES = `
   .pp-method-icon { font-size: 1.25rem; }
   .pp-method-label { display: block; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-600); }
   .pp-method-value { display: block; font-size: 1rem; font-weight: 800; color: var(--black); }
+  .pp-method-link { color: var(--blue); text-decoration: underline; font-weight: 800; }
 
   .pp-refund-note {
     font-size: .8rem; color: var(--gray-600); line-height: 1.6;
@@ -529,7 +541,6 @@ const STYLES = `
   }
   .pp-btn-ghost:hover { color: var(--black); }
 
-  /* ── Ticket ── */
   .pp-ticket-wrap {
     max-width: 560px; margin: 0 auto;
     display: flex; flex-direction: column; align-items: center; gap: 1.75rem;
@@ -557,7 +568,6 @@ const STYLES = `
     width: 160px; padding: 1.5rem;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
   }
-  .pp-method-link { color: #5F96CA; text-decoration: underline; font-weight: 800; }
   .pp-ticket-logo { margin-bottom: .25rem; }
   .pp-ticket-conf { font-size: .8125rem; font-weight: 800; color: var(--blue); text-transform: uppercase; letter-spacing: .08em; }
   .pp-ticket-divider { border: none; border-top: 1px solid var(--gray-200); margin: .25rem 0; }
