@@ -248,13 +248,11 @@ function ConferenceCard({ conf, isRegistered, isLoggedIn, onGetTickets }: {
           </div>
           {isSummerCamp ? (
             <div className="cc-detail">
-              <span className="cc-icon">🎟</span>
-              <span>3,000 EGP</span>
             </div>
           ) : conf.price ? (
             <div className="cc-detail">
-              <span className="cc-icon">🎟</span>
-              <span>{conf.price.toLocaleString()} EGP</span>
+             {/*  <span className="cc-icon">🎟</span>
+              <span>{conf.price.toLocaleString()} EGP</span> */}
             </div>
           ) : null}
         </div>

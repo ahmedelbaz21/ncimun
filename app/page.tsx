@@ -113,7 +113,7 @@ export default function HomePage() {
               <img src="/logo.png" alt="NCIMUN" className="hero-logo" />
             </div>
 
-            <div className="hero-tag">Summer Camp 2026 — Now open</div>
+            <div className="hero-tag">Voulme 7 — Now open</div>
 
             <h1 className="hero-headline">
               Where young voices<br />
@@ -127,7 +127,7 @@ export default function HomePage() {
 
             <div className="hero-actions">
               <Link href="/register" className="btn-aqua">Register now</Link>
-              <Link href="/conferences" className="btn-ghost-light">View Summer Camp →</Link>
+              <Link href="/conferences" className="btn-ghost-light">View conferences →</Link>
             </div>
           </div>
 
@@ -140,18 +140,18 @@ export default function HomePage() {
           <div className="container">
             <div className="sect-head">
               <div>
-                <p className="eyebrow">This summer</p>
-                <h2 className="sect-title">Five councils. Five debates.</h2>
+                <p className="eyebrow">Volume 7 · Part 1</p>
+                <h2 className="sect-title">Twelve councils. Real debates.</h2>
               </div>
               <Link href="/councils" className="btn-outline-blue">All councils →</Link>
             </div>
             <div className="councils-grid">
               {[
-                { abbr: 'ICJ', name: 'International Court of Justice', topic: 'Iron Man vs. Captain America' },
-                { abbr: 'UNSC', name: 'Security Council', topic: 'Zombie Apocalypse Crisis' },
-                { abbr: 'TFC', name: 'The Football Court', topic: 'Is the World Cup rigged?' },
-                { abbr: 'CX', name: 'CrisisX', topic: 'Was it an inside job?' },
-                { abbr: 'TGB', name: 'The Golden Billion', topic: 'Should we only keep a billion humans?' },
+                { abbr: 'UNSC', name: 'Security Council', topic: 'International peace & security' },
+                { abbr: 'ICJ', name: 'International Court of Justice', topic: 'Disputes between nations' },
+                { abbr: 'HRC', name: 'Human Rights Council', topic: 'Global human rights protection' },
+                { abbr: 'DISEC', name: 'Disarmament & Security Committee', topic: 'Arms control & global security' },
+                { abbr: 'ECOSOC', name: 'Economic & Social Council', topic: 'Sustainable development & poverty' },
               ].map((c, i) => (
                 <div key={c.abbr} className="council-card">
                   <span className="council-abbr">{c.abbr}</span>
@@ -214,7 +214,7 @@ export default function HomePage() {
         <section className="cta-sect">
           <div className="container cta-inner">
             <h2 className="cta-title">Spots are filling fast.</h2>
-            <p className="cta-sub">Secure your place at NCIMUN Summer Camp 2026 before it sells out.</p>
+            <p className="cta-sub">Secure your place at NCIMUN before it sells out.</p>
             <Link href="/register" className="btn-aqua btn-lg">Register now</Link>
           </div>
         </section>
