@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { createBrowserClient } from '@supabase/ssr';
 
 type Conference = {
   id: number;
@@ -46,6 +46,10 @@ export default function ConferenceRegisterPage() {
   const params = useParams();
   const slug = params.slug as string;
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,6 +60,7 @@ export default function ConferenceRegisterPage() {
   const [councils, setCouncils] = useState<Council[]>([]);
   const [routes, setRoutes] = useState<TransportRoute[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [grade, setGrade] = useState<number | null>(null);
 
   // Form state
   const [councilPref1, setCouncilPref1] = useState('');
@@ -71,6 +76,13 @@ export default function ConferenceRegisterPage() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) { router.push('/login'); return; }
       setUser(authUser);
+
+      const { data: profileData } = await supabase
+        .from('delegate_profiles')
+        .select('grade')
+        .eq('user_id', authUser.id)
+        .single();
+      if (profileData?.grade) setGrade(profileData.grade);
 
       // Fetch conference
       const { data: confData } = await supabase
@@ -104,6 +116,29 @@ export default function ConferenceRegisterPage() {
     load();
   }, [slug]);
 
+  // Council IDs for filtering (these are the council_id values from conference_councils)
+  // Junior councils (grades 7-8 only): HRC, ECOSOC, UNICEF
+  // Senior councils (grades 11-12 only): UNSC, ICJ
+  // We filter by council name since IDs may vary
+
+  const JUNIOR_COUNCIL_NAMES = ['Human Rights Council', 'Economic and Social Council', 'United Nations Children\'s Fund'];
+  const SENIOR_ONLY_NAMES = ['Security Council', 'International Court of Justice'];
+
+  const filteredCouncils = councils.filter(c => {
+    const name = c.councils.name;
+    if (grade === null) return true; // show all if grade unknown
+    if (grade <= 8) {
+      // Juniors: only junior councils
+      return JUNIOR_COUNCIL_NAMES.includes(name);
+    } else if (grade <= 10) {
+      // Grades 9-10: no junior councils, no senior-only councils
+      return !JUNIOR_COUNCIL_NAMES.includes(name) && !SENIOR_ONLY_NAMES.includes(name);
+    } else {
+      // Grades 11-12: no junior councils
+      return !JUNIOR_COUNCIL_NAMES.includes(name);
+    }
+  });
+
   // Validation
   const step0Valid = councilPref1 && councilPref2 && councilPref1 !== councilPref2;
   const step1Valid = needsTransport !== null && (needsTransport === false || transportRouteId !== '');
@@ -114,51 +149,53 @@ export default function ConferenceRegisterPage() {
   const back = () => { setError(''); setStep(s => s - 1); };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!acceptedTerms || !conference || !user) return;
-  setSubmitting(true);
-  setError('');
+    e.preventDefault();
+    if (!acceptedTerms || !conference || !user) return;
+    setSubmitting(true);
+    setError('');
 
-  try {
-    const { data: profile } = await supabase
-      .from('delegate_profiles')
-      .select('id, delegate_id')
-      .eq('user_id', user.id)
-      .single();
+    try {
+      // Get delegate profile
+      const { data: profile } = await supabase
+        .from('delegate_profiles')
+        .select('id, delegate_id')
+        .eq('user_id', user.id)
+        .single();
 
-    if (!profile) throw new Error('Delegate profile not found. Please contact support.');
+      if (!profile) throw new Error('Delegate profile not found. Please contact support.');
 
-    console.log('Inserting registration with:', {
-      delegate_id: profile.id,
-      conference_id: conference.id,
-      council_pref_1: parseInt(councilPref1) || null,
-      council_pref_2: parseInt(councilPref2) || null,
-    });
-    // Insert registration row
-    const { error: regError } = await supabase
-  .from('registrations')
-  .insert({
-    delegate_id:        profile.id,
-    conference_id:      conference.id,
-    council_pref_1:     parseInt(councilPref1) || null,
-    council_pref_2:     parseInt(councilPref2) || null,
-    needs_transport:    needsTransport || false,
-    transport_route_id: transportRouteId ? parseInt(transportRouteId) : null,
-    payment_status:     'pending',
-  });
+      console.log('Inserting registration with:', {
+        delegate_id: profile.id,
+        conference_id: conference.id,
+        council_pref_1: parseInt(councilPref1) || null,
+        council_pref_2: parseInt(councilPref2) || null,
+      });
 
-console.log('Registration error:', JSON.stringify(regError));
-if (regError) throw new Error(regError.message);
+      // Insert registration row
+      const { error: regError } = await supabase
+        .from('registrations')
+        .insert({
+          delegate_id:        profile.id,
+          conference_id:      conference.id,
+          council_pref_1:     parseInt(councilPref1) || null,
+          council_pref_2:     parseInt(councilPref2) || null,
+          needs_transport:    needsTransport || false,
+          transport_route_id: transportRouteId ? parseInt(transportRouteId) : null,
+          payment_status:     'pending',
+        });
 
-    router.push(
-      `/payment-instructions?conference=${conference.slug}&delegate=${profile.delegate_id}`
-    );
+      console.log('Registration error:', JSON.stringify(regError));
+      if (regError) throw new Error(regError.message);
 
-  } catch (err: any) {
-    setError(err.message || 'Something went wrong. Please try again.');
-    setSubmitting(false);
-  }
-};
+      router.push(
+        `/payment-instructions?conference=${conference.slug}&delegate=${profile.delegate_id}`
+      );
+
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -216,7 +253,17 @@ if (regError) throw new Error(regError.message);
               Select your top two council choices. Allocation is based on availability and preference order.
             </p>
 
-            {councils.length === 0 ? (
+            {grade !== null && (
+              <div className="cr-info-box" style={{fontSize: '.8125rem'}}>
+                {grade <= 8
+                  ? '🎓 As a Grade 7–8 delegate, you\'re eligible for HRC, ECOSOC, and UNICEF.'
+                  : grade <= 10
+                  ? '🎓 As a Grade 9–10 delegate, you\'re eligible for all councils except junior councils (HRC, ECOSOC, UNICEF) and senior-only councils (UNSC, ICJ).'
+                  : '🎓 As a Grade 11–12 delegate, you\'re eligible for all councils except junior councils (HRC, ECOSOC, UNICEF).'}
+              </div>
+            )}
+
+            {filteredCouncils.length === 0 ? (
               <div className="cr-empty">
                 No councils have been added for this conference yet. Please check back soon.
               </div>
@@ -231,7 +278,7 @@ if (regError) throw new Error(regError.message);
                     required
                   >
                     <option value="">Choose a council</option>
-                    {councils.map(c => (
+                    {filteredCouncils.map(c => (
                       <option
                         key={c.council_id}
                         value={String(c.council_id)}
@@ -252,7 +299,7 @@ if (regError) throw new Error(regError.message);
                     required
                   >
                     <option value="">Choose a council</option>
-                    {councils.map(c => (
+                    {filteredCouncils.map(c => (
                       <option
                         key={c.council_id}
                         value={String(c.council_id)}

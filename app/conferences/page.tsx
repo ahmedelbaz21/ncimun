@@ -127,22 +127,22 @@ export default function ConferencesPage() {
         )}
       </div>
 
-      {summerCamps.length > 0 && (
+      {confVolumes.length > 0 && (
         <section className="cp-section">
-          <h2 className="cp-section-title">Summer Camp</h2>
+          <h2 className="cp-section-title">Volume 7</h2>
           <div className="cp-grid">
-            {summerCamps.map(conf => (
+            {confVolumes.map(conf => (
               <ConferenceCard key={conf.id} conf={conf} isRegistered={registeredIds.includes(conf.id)} isLoggedIn={!!user} onGetTickets={() => handleGetTickets(conf)} />
             ))}
           </div>
         </section>
       )}
 
-      {confVolumes.length > 0 && (
+        {summerCamps.length > 0 && (
         <section className="cp-section">
-          <h2 className="cp-section-title">Volume 7</h2>
+          <h2 className="cp-section-title">Summer Camp</h2>
           <div className="cp-grid">
-            {confVolumes.map(conf => (
+            {summerCamps.map(conf => (
               <ConferenceCard key={conf.id} conf={conf} isRegistered={registeredIds.includes(conf.id)} isLoggedIn={!!user} onGetTickets={() => handleGetTickets(conf)} />
             ))}
           </div>

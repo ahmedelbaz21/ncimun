@@ -11,6 +11,15 @@ type Council = {
   description: string | null;
 };
 
+const JUNIOR_COUNCILS = ['Human Rights Council', 'Economic and Social Council', "United Nations Children's Fund"];
+const SENIOR_ONLY_COUNCILS = ['Security Council', 'International Court of Justice'];
+
+function getGradeBadge(name: string): { label: string; style: 'junior' | 'senior' | 'mid' } {
+  if (JUNIOR_COUNCILS.includes(name)) return { label: 'Grades 7–8', style: 'junior' };
+  if (SENIOR_ONLY_COUNCILS.includes(name)) return { label: 'Grades 11–12', style: 'senior' };
+  return { label: 'Grades 9–12', style: 'mid' };
+}
+
 export default function CouncilsPage() {
   const [councils, setCouncils] = useState<Council[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +64,7 @@ export default function CouncilsPage() {
           <p className="co-eyebrow">NCIMUN Volume 7</p>
           <h1 className="co-title">Councils</h1>
           <p className="co-subtitle">
-            12 councils across international law, security, human rights, environment, and social policy. choose your preference when you register.
+            12 councils across international law, security, human rights, environment, and social policy. Choose your preference when you register.
           </p>
         </div>
       </div>
@@ -68,6 +77,7 @@ export default function CouncilsPage() {
           <div className="co-grid">
             {councils.map((council, i) => {
               const color = colors[i % colors.length];
+              const badge = getGradeBadge(council.name);
               return (
                 <div key={council.id} className="co-card" style={{ borderColor: color.border, background: color.bg }}>
                   <div className="co-card-top">
@@ -84,6 +94,9 @@ export default function CouncilsPage() {
                   {council.description && (
                     <p className="co-card-desc">{council.description}</p>
                   )}
+                  <div className="co-card-footer">
+                    <span className={`co-grade-badge co-grade-badge--${badge.style}`}>{badge.label}</span>
+                  </div>
                 </div>
               );
             })}
@@ -142,6 +155,30 @@ export default function CouncilsPage() {
           font-size: 1rem; color: rgba(255,255,255,.6); line-height: 1.7; max-width: 520px; margin: 0 auto;
         }
 
+        /* Legend */
+        .co-legend-wrap {
+          background: var(--white); border-bottom: 1px solid var(--gray-200);
+          padding: .875rem 2rem;
+        }
+        .co-legend {
+          max-width: 1100px; margin: 0 auto;
+          display: flex; align-items: center; gap: .625rem; flex-wrap: wrap;
+          font-size: .8125rem;
+        }
+        .co-legend-label { font-weight: 700; color: var(--black); margin-right: .25rem; }
+        .co-legend-desc { color: var(--gray-600); }
+        .co-legend-sep { color: var(--gray-400); }
+
+        /* Grade badges */
+        .co-grade-badge {
+          font-size: .7rem; font-weight: 800; letter-spacing: .06em;
+          text-transform: uppercase; padding: .2rem .6rem; border-radius: 999px;
+          white-space: nowrap;
+        }
+        .co-grade-badge--junior { background: rgba(132,219,213,.15); color: #2D9B6F; }
+        .co-grade-badge--mid    { background: rgba(95,150,202,.12);  color: #5F96CA; }
+        .co-grade-badge--senior { background: rgba(245,200,66,.15);  color: #8a7a00; }
+
         /* Container */
         .co-container { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem 6rem; }
         .co-loading { text-align: center; padding: 4rem; color: var(--gray-400); }
@@ -166,6 +203,7 @@ export default function CouncilsPage() {
 
         .co-card-title { font-size: 1.0625rem; font-weight: 800; color: var(--black); line-height: 1.3; }
         .co-card-desc { font-size: .875rem; color: var(--gray-600); line-height: 1.65; flex: 1; }
+        .co-card-footer { margin-top: auto; }
 
         /* CTA */
         .co-cta {
@@ -187,6 +225,8 @@ export default function CouncilsPage() {
           .co-grid { grid-template-columns: 1fr; }
           .co-container { padding: 3rem 1rem 5rem; }
           .co-cta { flex-direction: column; text-align: center; }
+          .co-legend { gap: .4rem; }
+          .co-legend-sep { display: none; }
         }
       `}</style>
     </main>
