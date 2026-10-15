@@ -43,6 +43,8 @@ export default function LoginPage() {
 
       if (userData?.account_type === 'team') {
         window.location.href = '/team-portal';
+      } else if (email.toLowerCase() === 'hanan.sameer@continental.ms') {
+        window.location.href = '/continental-dashboard';
       } else {
         window.location.href = '/conferences';
       }
