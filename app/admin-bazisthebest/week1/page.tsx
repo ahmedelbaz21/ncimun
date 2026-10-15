@@ -142,7 +142,7 @@ export default function AdminDashboard() {
           <img src="/logo.png" alt="NCIMUN" className="ad-logo" />
           <div>
             <h1 className="ad-title">Admin Dashboard</h1>
-            <p className="ad-subtitle">NCIMUN Summer Camp 2026</p>
+            <p className="ad-subtitle">VOL7 WEEK 1</p>
           </div>
         </div>
         <button className="ad-refresh" onClick={load}>↻ Refresh</button>
