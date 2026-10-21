@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
             <p style="font-size:.875rem;color:#888;line-height:1.6;">
               After paying, upload your screenshot on the portal to confirm your registration instantly.<br/>
-              Questions? Contact us at ncimun.eg@gmail.com or 010 3162 3162.
+              Questions? Contact us at ncimun.eg@gmail.com or 012 2331 5966.
             </p>
 
             <hr style="border:none;border-top:1px solid #eee;margin:1.5rem 0;"/>

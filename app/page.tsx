@@ -258,7 +258,7 @@ export default function HomePage() {
         </div>
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} NCIMUN. All rights reserved.</span>
-          <span>ncimun.eg@gmail.com · 010 3162 3162</span>
+          <span>ncimun.eg@gmail.com · 012 2331 5966</span>
         </div>
       </footer>
 

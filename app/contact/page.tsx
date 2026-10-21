@@ -55,11 +55,11 @@ export default function ContactPage() {
           </p>
 
           <div className="cp-contact-items">
-            <a href="tel:01031623162" className="cp-contact-item">
+            <a href="tel:01223315966" className="cp-contact-item">
               <div className="cp-contact-icon">📞</div>
               <div>
                 <span className="cp-contact-label">Phone</span>
-                <span className="cp-contact-value">010 3162 3162</span>
+                <span className="cp-contact-value">012 2331 5966</span>
               </div>
             </a>
 
