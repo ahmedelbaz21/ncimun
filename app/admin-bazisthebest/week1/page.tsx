@@ -4,14 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
+import TransportCard from '../TransportCard';
 
 type Registration = {
   id: number;
+  delegate_id: string;
   payment_status: string;
   payment_method: string | null;
   payment_drive_url: string | null;
   created_at: string;
   needs_transport: boolean;
+  transport_route_id: number | null;
   delegate_profiles: {
     delegate_id: string;
     first_name: string;
@@ -43,6 +46,7 @@ export default function AdminDashboard() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [councilStats, setCouncilStats] = useState<CouncilStat[]>([]);
   const [transportStats, setTransportStats] = useState<TransportStat[]>([]);
+  const [conferenceId, setConferenceId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [flagging, setFlagging] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -63,12 +67,13 @@ export default function AdminDashboard() {
       .single();
 
     if (!conf) { setLoading(false); return; }
+    setConferenceId(conf.id);
 
     // Registrations
     const { data: regs } = await supabase
       .from('registrations')
       .select(`
-        id, payment_status, payment_method, payment_drive_url, created_at, needs_transport,
+        id, delegate_id, payment_status, payment_method, payment_drive_url, created_at, needs_transport, transport_route_id,
         delegate_profiles(delegate_id, first_name, last_name, email, school, grade),
         conferences(title, slug),
         allocated_council:councils!registrations_allocated_council_id_fkey(name),
@@ -198,20 +203,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Transport overview */}
-        <div className="ad-card">
-          <h2 className="ad-card-title">Transport points</h2>
-          <div className="ad-transport-list">
-            {transportStats.map(t => (
-              <div key={t.id} className="ad-transport-row">
-                <span className="ad-transport-name">{t.location_name}</span>
-                <span className="ad-transport-count">{t.current_count} delegates</span>
-              </div>
-            ))}
-            {transportStats.length === 0 && (
-              <p className="ad-empty">No transport data yet.</p>
-            )}
-          </div>
-        </div>
+        <TransportCard conferenceId={conferenceId} routes={transportStats} registrations={registrations} />
       </div>
 
       {/* ── Registrations table ── */}

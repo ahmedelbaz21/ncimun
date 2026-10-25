@@ -30,6 +30,8 @@ type Registration = {
   payment_method: string | null;
   created_at: string;
   needs_transport: boolean;
+  conference_id: number;
+  transport_route_id: number | null;
   conferences: {
     title: string;
     slug: string;
@@ -40,6 +42,45 @@ type Registration = {
   allocated_council: { name: string } | null;
   transport_routes: { location_name: string } | null;
 };
+
+type TransportRoute = {
+  id: number;
+  conference_id: number;
+  location_name: string;
+};
+
+type TransportSelection = {
+  conference_id: number;
+  day_type: string;
+  pickup_route_id: number | null;
+  dropoff_route_id: number | null;
+};
+
+type TransportChoice = { pickup: string; dropoff: string };
+
+const REGULAR_DAY_TYPES = [
+  { key: 'weekday', label: 'Sun – Thu (Weekday)' },
+  { key: 'weekend', label: 'Fri – Sat (Weekend)' },
+];
+
+const CONTI_DAY_TYPES = [
+  { key: 'sun_mon', label: 'Sun – Mon' },
+  { key: 'tue_thu', label: 'Tue – Thu' },
+  { key: 'fri_sat', label: 'Fri – Sat (Weekend)' },
+];
+
+// Transport updates close at the end of Wednesday 28 Oct, Cairo time
+const TRANSPORT_DEADLINE = new Date('2026-10-28T23:59:59+03:00');
+
+// Display order and labels for saved selections on the ticket
+const DAY_TYPE_LABELS: Record<string, string> = {
+  weekday: 'Sun–Thu (Weekday)',
+  sun_mon: 'Sun–Mon',
+  tue_thu: 'Tue–Thu',
+  fri_sat: 'Fri–Sat (Weekend)',
+  weekend: 'Fri–Sat (Weekend)',
+};
+const DAY_TYPE_ORDER = Object.keys(DAY_TYPE_LABELS);
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -61,6 +102,14 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [qrModal, setQrModal] = useState<{ reg: Registration; qrUrl: string } | null>(null);
   const [generatingQr, setGeneratingQr] = useState<number | null>(null);
+  const [transportRoutes, setTransportRoutes] = useState<TransportRoute[]>([]);
+  const [transportSelections, setTransportSelections] = useState<TransportSelection[]>([]);
+  // Registration id whose transport panel is open (a delegate can have several tickets)
+  const [showTransport, setShowTransport] = useState<number | null>(null);
+  const [transportForm, setTransportForm] = useState<Record<string, TransportChoice>>({});
+  const [savingTransport, setSavingTransport] = useState(false);
+  const [transportSaved, setTransportSaved] = useState<number | null>(null);
+  const [transportError, setTransportError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -88,6 +137,7 @@ export default function ProfilePage() {
         .from('registrations')
         .select(`
           id, payment_status, payment_method, created_at, needs_transport,
+          conference_id, transport_route_id,
           conferences(title, slug, start_date, end_date, venue),
           allocated_council:councils!registrations_allocated_council_id_fkey(name),
           transport_routes(location_name)
@@ -95,7 +145,27 @@ export default function ProfilePage() {
         .eq('delegate_id', profileData.id)
         .order('created_at', { ascending: false });
 
-      if (regData) setRegistrations(regData as any);
+      if (regData) {
+        setRegistrations(regData as any);
+
+        const conferenceIds = [...new Set((regData as unknown as Registration[]).map(r => r.conference_id))];
+        if (conferenceIds.length > 0) {
+          const { data: routeData } = await supabase
+            .from('transport_routes')
+            .select('id, conference_id, location_name')
+            .in('conference_id', conferenceIds)
+            .order('location_name');
+
+          if (routeData) setTransportRoutes(routeData);
+        }
+
+        const { data: selectionData } = await supabase
+          .from('transport_selections')
+          .select('conference_id, day_type, pickup_route_id, dropoff_route_id')
+          .eq('delegate_id', profileData.id);
+
+        if (selectionData) setTransportSelections(selectionData);
+      }
       setLoading(false);
     };
     load();
@@ -129,6 +199,68 @@ export default function ProfilePage() {
     a.href = qrModal.qrUrl;
     a.download = `NCIMUN_ticket_${profile.delegate_id}.png`;
     a.click();
+  };
+
+  const isConti = /conti/i.test(profile?.school ?? '');
+  const dayTypes = isConti ? CONTI_DAY_TYPES : REGULAR_DAY_TYPES;
+
+  const routeName = (id: number | null) =>
+    id ? transportRoutes.find(r => r.id === id)?.location_name ?? '—' : 'No transport';
+
+  const savedSelectionsFor = (conferenceId: number) =>
+    transportSelections
+      .filter(s => s.conference_id === conferenceId)
+      .sort((a, b) => DAY_TYPE_ORDER.indexOf(a.day_type) - DAY_TYPE_ORDER.indexOf(b.day_type));
+
+  const toggleTransport = (reg: Registration) => {
+    if (showTransport === reg.id) { setShowTransport(null); return; }
+
+    // Prefill with anything already saved, otherwise the route they picked at registration
+    const original = reg.transport_route_id ? String(reg.transport_route_id) : '';
+    const form: Record<string, TransportChoice> = {};
+    for (const { key } of dayTypes) {
+      const saved = transportSelections.find(s => s.conference_id === reg.conference_id && s.day_type === key);
+      form[key] = saved
+        ? { pickup: saved.pickup_route_id ? String(saved.pickup_route_id) : '', dropoff: saved.dropoff_route_id ? String(saved.dropoff_route_id) : '' }
+        : { pickup: original, dropoff: original };
+    }
+
+    setTransportForm(form);
+    setTransportSaved(null);
+    setTransportError(null);
+    setShowTransport(reg.id);
+  };
+
+  const handleSaveTransport = async (e: React.FormEvent, reg: Registration) => {
+    e.preventDefault();
+    // Pending delegates can save too; the admin counts only paid ones
+    if (!profile || reg.payment_status === 'flagged' || Date.now() > TRANSPORT_DEADLINE.getTime()) return;
+    setSavingTransport(true);
+    setTransportError(null);
+
+    const now = new Date().toISOString();
+    const rows = dayTypes.map(({ key }) => ({
+      delegate_id: profile.id,
+      conference_id: reg.conference_id,
+      day_type: key,
+      pickup_route_id: transportForm[key]?.pickup ? parseInt(transportForm[key].pickup) : null,
+      dropoff_route_id: transportForm[key]?.dropoff ? parseInt(transportForm[key].dropoff) : null,
+      updated_at: now,
+    }));
+
+    const { error } = await supabase
+      .from('transport_selections')
+      .upsert(rows, { onConflict: 'delegate_id,conference_id,day_type' });
+
+    setSavingTransport(false);
+    if (error) { setTransportError('Could not save your transport. Please try again.'); return; }
+
+    setTransportSelections(prev => [
+      ...prev.filter(s => s.conference_id !== reg.conference_id),
+      ...rows.map(({ conference_id, day_type, pickup_route_id, dropoff_route_id }) => ({ conference_id, day_type, pickup_route_id, dropoff_route_id })),
+    ]);
+    setShowTransport(null);
+    setTransportSaved(reg.id);
   };
 
   const handleLogout = async () => {
@@ -182,8 +314,12 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="pr-tickets">
-            {registrations.map(reg => (
-              <div key={reg.id} className={`pr-ticket ${reg.payment_status === 'flagged' ? 'pr-ticket--flagged' : ''}`}>
+            {registrations.map(reg => {
+              const savedSelections = savedSelectionsFor(reg.conference_id);
+              const hasSaved = savedSelections.length > 0;
+              return (
+              <div key={reg.id} className="pr-ticket-group">
+              <div className={`pr-ticket ${reg.payment_status === 'flagged' ? 'pr-ticket--flagged' : ''}`}>
                 {/* Left section */}
                 <div className="pr-ticket-left">
                   <div className="pr-ticket-conf">{reg.conferences?.title}</div>
@@ -201,17 +337,33 @@ export default function ProfilePage() {
                         {reg.allocated_council?.name || 'Pending allocation'}
                       </span>
                     </div>
-                    <div className="pr-ticket-detail">
-                      <span className="pr-ticket-detail-label">Transport</span>
-                      <span className="pr-ticket-detail-value">
-                        {reg.needs_transport ? reg.transport_routes?.location_name || '—' : 'Own transport'}
-                      </span>
-                    </div>
+                    {!hasSaved && (
+                      <div className="pr-ticket-detail">
+                        <span className="pr-ticket-detail-label">Transport</span>
+                        <span className="pr-ticket-detail-value">
+                          {reg.needs_transport ? reg.transport_routes?.location_name || '—' : 'Own transport'}
+                        </span>
+                      </div>
+                    )}
                     <div className="pr-ticket-detail">
                       <span className="pr-ticket-detail-label">Registered</span>
                       <span className="pr-ticket-detail-value">{formatDate(reg.created_at)}</span>
                     </div>
                   </div>
+
+                  {hasSaved && (
+                    <div className="pr-ticket-saved">
+                      <span className="pr-ticket-detail-label">Saved transport</span>
+                      {savedSelections.map(sel => (
+                        <div key={sel.day_type} className="pr-ticket-saved-row">
+                          <span className="pr-ticket-saved-day">{DAY_TYPE_LABELS[sel.day_type] ?? sel.day_type}</span>
+                          <span className="pr-ticket-saved-routes">
+                            Pickup: {routeName(sel.pickup_route_id)}  ·  Dropoff: {routeName(sel.dropoff_route_id)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right section */}
@@ -243,7 +395,66 @@ export default function ProfilePage() {
                 <div className="pr-ticket-notch pr-ticket-notch--top" />
                 <div className="pr-ticket-notch pr-ticket-notch--bottom" />
               </div>
-            ))}
+
+              {/* Transport update */}
+              <div className="pr-transport">
+                {hasSaved ? (
+                  <p className="pr-transport-locked">🔒 Transport selection locked</p>
+                ) : Date.now() > TRANSPORT_DEADLINE.getTime() ? (
+                  <p className="pr-transport-locked">🔒 Transport updates closed</p>
+                ) : reg.payment_status !== 'flagged' && (
+                  <button type="button" className="pr-btn-outline pr-transport-toggle" onClick={() => toggleTransport(reg)}>
+                    {showTransport === reg.id ? '✕ Close' : '🚌 Update transport'}
+                  </button>
+                )}
+
+                {transportSaved === reg.id && showTransport !== reg.id && (
+                  <p className="pr-transport-success">✓ Transport updated successfully</p>
+                )}
+
+                {showTransport === reg.id && reg.payment_status !== 'flagged' && Date.now() <= TRANSPORT_DEADLINE.getTime() && (
+                  <form className="pr-transport-panel" onSubmit={e => handleSaveTransport(e, reg)}>
+                    <div className="pr-transport-head">
+                      <h3 className="pr-transport-title">Update transport</h3>
+                      <span className="pr-transport-deadline">Deadline: Wednesday, Oct 28 — one-time update</span>
+                    </div>
+
+                    {dayTypes.map(({ key, label }) => (
+                      <div key={key} className="pr-transport-day">
+                        <p className="pr-transport-day-label">{label}</p>
+                        <div className="pr-transport-grid">
+                          {(['pickup', 'dropoff'] as const).map(field => (
+                            <label key={field} className="pr-transport-field">
+                              <span className="pr-transport-field-label">{field === 'pickup' ? 'Pickup' : 'Dropoff'}</span>
+                              <select
+                                className="pr-transport-select"
+                                value={transportForm[key]?.[field] ?? ''}
+                                onChange={e => setTransportForm(prev => ({ ...prev, [key]: { ...prev[key], [field]: e.target.value } }))}
+                              >
+                                <option value="">No transport needed</option>
+                                {transportRoutes
+                                  .filter(r => r.conference_id === reg.conference_id)
+                                  .map(r => (
+                                    <option key={r.id} value={r.id}>{r.location_name}</option>
+                                  ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {transportError && <p className="pr-transport-error">{transportError}</p>}
+
+                    <button type="submit" className="pr-btn-primary" disabled={savingTransport}>
+                      {savingTransport ? 'Saving…' : 'Save transport'}
+                    </button>
+                  </form>
+                )}
+              </div>
+              </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -430,6 +641,32 @@ const BASE_STYLES = `
   }
   .pr-ticket-notch--top { top: -10px; }
   .pr-ticket-notch--bottom { bottom: -10px; }
+
+  /* Transport update */
+  .pr-ticket-group { display: flex; flex-direction: column; gap: .75rem; }
+  .pr-transport { display: flex; flex-direction: column; gap: .75rem; align-items: flex-start; }
+  .pr-transport-toggle { background: none; cursor: pointer; }
+  .pr-transport-locked { font-size: .8125rem; font-weight: 700; color: var(--gray-600); }
+  .pr-ticket-saved { display: flex; flex-direction: column; gap: .35rem; margin-top: .25rem; padding-top: .625rem; border-top: 1px solid var(--gray-200); }
+  .pr-ticket-saved-row { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: baseline; }
+  .pr-ticket-saved-day { font-size: .75rem; font-weight: 800; color: var(--blue); min-width: 120px; }
+  .pr-ticket-saved-routes { font-size: .8125rem; font-weight: 600; color: var(--black); white-space: pre-wrap; }
+  .pr-transport-success { font-size: .8125rem; font-weight: 700; color: var(--green); }
+  .pr-transport-panel { width: 100%; background: var(--black); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+  .pr-transport-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; }
+  .pr-transport-title { font-size: .9375rem; font-weight: 800; color: var(--white); }
+  .pr-transport-deadline { font-size: .75rem; font-weight: 700; color: var(--yellow); background: rgba(248,233,141,.1); border: 1px solid rgba(248,233,141,.3); border-radius: 999px; padding: .3rem .75rem; }
+  .pr-transport-day { display: flex; flex-direction: column; gap: .5rem; }
+  .pr-transport-day-label { font-size: .75rem; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .08em; }
+  .pr-transport-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .pr-transport-field { display: flex; flex-direction: column; gap: .3rem; }
+  .pr-transport-field-label { font-size: .6875rem; font-weight: 700; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: .06em; }
+  .pr-transport-select { width: 100%; background: rgba(255,255,255,.06); color: var(--white); border: 1.5px solid rgba(255,255,255,.15); border-radius: 8px; padding: .6rem .75rem; font-family: var(--font); font-size: .875rem; font-weight: 600; cursor: pointer; transition: border-color .15s; }
+  .pr-transport-select:focus { outline: none; border-color: var(--blue); }
+  .pr-transport-select option { background: var(--black); color: var(--white); }
+  .pr-transport-error { font-size: .8125rem; font-weight: 600; color: var(--red); }
+  .pr-transport-panel .pr-btn-primary { align-self: flex-start; }
+  .pr-transport-panel .pr-btn-primary:disabled { opacity: .6; cursor: default; }
 
   /* Status */
   .pr-status { font-size: .6875rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .3rem .75rem; border-radius: 999px; white-space: nowrap; }
