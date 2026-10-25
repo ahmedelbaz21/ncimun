@@ -30,6 +30,19 @@ type TransportRoute = {
 
 const STEPS = ['Council preferences', 'Transportation', 'Confirm & pay'];
 
+type TransportChoice = { pickup: string; dropoff: string };
+
+const REGULAR_DAY_TYPES = [
+  { key: 'weekday', label: 'Sun – Thu (Weekday)' },
+  { key: 'weekend', label: 'Fri – Sat (Weekend)' },
+];
+
+const CONTI_DAY_TYPES = [
+  { key: 'sun_mon', label: 'Sun – Mon' },
+  { key: 'tue_thu', label: 'Tue – Thu' },
+  { key: 'fri_sat', label: 'Fri – Sat (Weekend)' },
+];
+
 function formatDate(start: string | null, end: string | null) {
   if (!start || !end) return 'Dates TBC';
   const s = new Date(start);
@@ -61,12 +74,13 @@ export default function ConferenceRegisterPage() {
   const [routes, setRoutes] = useState<TransportRoute[]>([]);
   const [user, setUser] = useState<any>(null);
   const [grade, setGrade] = useState<number | null>(null);
+  const [school, setSchool] = useState('');
 
   // Form state
   const [councilPref1, setCouncilPref1] = useState('');
   const [councilPref2, setCouncilPref2] = useState('');
   const [needsTransport, setNeedsTransport] = useState<boolean | null>(null);
-  const [transportRouteId, setTransportRouteId] = useState('');
+  const [transportForm, setTransportForm] = useState<Record<string, TransportChoice>>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
@@ -79,10 +93,11 @@ export default function ConferenceRegisterPage() {
 
       const { data: profileData } = await supabase
         .from('delegate_profiles')
-        .select('grade')
+        .select('grade, school')
         .eq('user_id', authUser.id)
         .single();
       if (profileData?.grade) setGrade(profileData.grade);
+      if (profileData?.school) setSchool(profileData.school);
 
       // Fetch conference
       const { data: confData } = await supabase
@@ -139,9 +154,21 @@ export default function ConferenceRegisterPage() {
     }
   });
 
+  // Transport: per-day pickup/dropoff; the most expensive chosen route sets the fee
+  const isConti = /conti/i.test(school);
+  const dayTypes = isConti ? CONTI_DAY_TYPES : REGULAR_DAY_TYPES;
+  const chosenRouteIds = needsTransport
+    ? [...new Set(dayTypes.flatMap(({ key }) => [transportForm[key]?.pickup, transportForm[key]?.dropoff]).filter(Boolean))]
+    : [];
+  const mainRoute = routes
+    .filter(r => chosenRouteIds.includes(String(r.id)))
+    .sort((a, b) => (b.price ?? 0) - (a.price ?? 0))[0] ?? null;
+  const routeLabel = (id: string | undefined) =>
+    id ? routes.find(r => String(r.id) === id)?.location_name ?? '—' : 'No transport';
+
   // Validation
   const step0Valid = councilPref1 && councilPref2 && councilPref1 !== councilPref2;
-  const step1Valid = needsTransport !== null && (needsTransport === false || transportRouteId !== '');
+  const step1Valid = needsTransport !== null && (needsTransport === false || chosenRouteIds.length > 0);
   const step2Valid = acceptedTerms;
   const canProceed = [step0Valid, step1Valid, step2Valid][step];
 
@@ -179,13 +206,29 @@ export default function ConferenceRegisterPage() {
           conference_id:      conference.id,
           council_pref_1:     parseInt(councilPref1) || null,
           council_pref_2:     parseInt(councilPref2) || null,
-          needs_transport:    needsTransport || false,
-          transport_route_id: transportRouteId ? parseInt(transportRouteId) : null,
+          needs_transport:    !!mainRoute,
+          transport_route_id: mainRoute?.id ?? null,
           payment_status:     'pending',
         });
 
       console.log('Registration error:', JSON.stringify(regError));
       if (regError) throw new Error(regError.message);
+
+      // Save the per-day choice; this counts as their one-time transport selection
+      const now = new Date().toISOString();
+      const { error: selError } = await supabase
+        .from('transport_selections')
+        .upsert(dayTypes.map(({ key }) => ({
+          delegate_id:      profile.id,
+          conference_id:    conference.id,
+          day_type:         key,
+          pickup_route_id:  needsTransport && transportForm[key]?.pickup ? parseInt(transportForm[key].pickup) : null,
+          dropoff_route_id: needsTransport && transportForm[key]?.dropoff ? parseInt(transportForm[key].dropoff) : null,
+          updated_at:       now,
+        })), { onConflict: 'delegate_id,conference_id,day_type' });
+
+      // Registration is already saved; if this fails they can still set transport from their profile
+      if (selError) console.error('Transport selection error:', selError);
 
       router.push(
         `/payment-instructions?conference=${conference.slug}&delegate=${profile.delegate_id}`
@@ -336,45 +379,51 @@ export default function ConferenceRegisterPage() {
               <button
                 type="button"
                 className={`cr-toggle ${needsTransport === false ? 'cr-toggle--active' : ''}`}
-                onClick={() => { setNeedsTransport(false); setTransportRouteId(''); }}
+                onClick={() => { setNeedsTransport(false); setTransportForm({}); }}
               >
                 No, I have my own transport
               </button>
             </div>
 
             {needsTransport === true && (
-              <div className="cr-field cr-field--mt">
-                <label className="cr-label">Pick-up location</label>
-                {routes.length === 0 ? (
-                  <div className="cr-empty">No transport routes have been added yet.</div>
-                ) : (
-                  <div className="cr-checklist">
-                    {routes.map(route => (
-                      <label
-                        key={route.id}
-                        className={`cr-check-item ${transportRouteId === String(route.id) ? 'cr-check-item--selected' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="transport_route"
-                          value={String(route.id)}
-                          checked={transportRouteId === String(route.id)}
-                          onChange={() => setTransportRouteId(String(route.id))}
-                          className="cr-check-radio"
-                        />
-                        <div className="cr-check-info">
-                          <span className="cr-check-name">{route.location_name}</span>
-                          <span className="cr-check-meta">
-                            {route.pickup_time && `Pickup: ${route.pickup_time}`}
-                            {route.pickup_time && route.price && ' · '}
-                            {route.price && `${route.price.toLocaleString()} EGP`}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
+              routes.length === 0 ? (
+                <div className="cr-empty">No transport routes have been added yet.</div>
+              ) : (
+                <div className="cr-transport">
+                  <p className="cr-hint">
+                    Choose your pickup and dropoff for each part of the week. Pick &quot;No transport needed&quot; for any trip you don&apos;t need.
+                  </p>
+                  {dayTypes.map(({ key, label }) => (
+                    <div key={key} className="cr-transport-day">
+                      <p className="cr-transport-day-label">{label}</p>
+                      <div className="cr-transport-grid">
+                        {(['pickup', 'dropoff'] as const).map(field => (
+                          <div key={field} className="cr-field">
+                            <label className="cr-label">{field === 'pickup' ? 'Pickup' : 'Dropoff'}</label>
+                            <select
+                              className="cr-input"
+                              value={transportForm[key]?.[field] ?? ''}
+                              onChange={e => setTransportForm(prev => ({ ...prev, [key]: { ...{ pickup: '', dropoff: '' }, ...prev[key], [field]: e.target.value } }))}
+                            >
+                              <option value="">No transport needed</option>
+                              {routes.map(route => (
+                                <option key={route.id} value={String(route.id)}>
+                                  {route.location_name}{route.price ? ` · ${route.price.toLocaleString()} EGP` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="cr-hint">
+                    Transport fee is set by the most expensive route you choose
+                    {mainRoute?.price ? `: ${mainRoute.price.toLocaleString()} EGP (${mainRoute.location_name}).` : '.'}
+                    {' '}This is your final transport choice.
+                  </p>
+                </div>
+              )
             )}
 
             {needsTransport === false && (
@@ -415,18 +464,22 @@ export default function ConferenceRegisterPage() {
               <div className="cr-confirm-row">
                 <span className="cr-confirm-label">Transportation</span>
                 <span className="cr-confirm-value">
-                  {needsTransport
-                    ? routes.find(r => String(r.id) === transportRouteId)?.location_name || '—'
-                    : 'Own transport'}
+                  {mainRoute ? 'Bus transport' : 'Own transport'}
                 </span>
               </div>
+              {mainRoute && dayTypes.map(({ key, label }) => (
+                <div key={key} className="cr-confirm-row">
+                  <span className="cr-confirm-label">{label}</span>
+                  <span className="cr-confirm-value">
+                    Pickup: {routeLabel(transportForm[key]?.pickup)} · Dropoff: {routeLabel(transportForm[key]?.dropoff)}
+                  </span>
+                </div>
+              ))}
               {conference.price && (
                 <div className="cr-confirm-row cr-confirm-row--total">
                   <span className="cr-confirm-label">Total</span>
                   <span className="cr-confirm-value">
-                    {(conference.price + (needsTransport
-                      ? (routes.find(r => String(r.id) === transportRouteId)?.price || 0)
-                      : 0)).toLocaleString()} EGP
+                    {(conference.price + (mainRoute?.price || 0)).toLocaleString()} EGP
                   </span>
                 </div>
               )}
@@ -591,6 +644,10 @@ export default function ConferenceRegisterPage() {
         .cr-field { display: flex; flex-direction: column; gap: .4rem; }
         .cr-field--mt { margin-top: .25rem; }
         .cr-label { font-size: .8125rem; font-weight: 700; }
+        .cr-transport { display: flex; flex-direction: column; gap: 1.25rem; margin-top: .25rem; }
+        .cr-transport-day { display: flex; flex-direction: column; gap: .5rem; }
+        .cr-transport-day-label { font-size: .75rem; font-weight: 800; color: var(--blue); text-transform: uppercase; letter-spacing: .08em; }
+        .cr-transport-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .cr-input {
           width: 100%; padding: .65rem .875rem;
           border: 1.5px solid var(--gray-200); border-radius: var(--radius);
