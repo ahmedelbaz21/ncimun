@@ -263,11 +263,6 @@ export default function ProfilePage() {
     setTransportSaved(reg.id);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
   if (loading) {
     return (
       <main className="pr-root">
@@ -281,12 +276,6 @@ export default function ProfilePage() {
 
   return (
     <main className="pr-root">
-
-      {/* ── Top bar ── */}
-      <div className="pr-topbar">
-        <Link href="/" className="pr-back">← Home</Link>
-        <button className="pr-logout" onClick={handleLogout}>Log out</button>
-      </div>
 
       {/* ── Identity header ── */}
       <div className="pr-identity">
@@ -581,12 +570,6 @@ const BASE_STYLES = `
   .pr-root { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: flex; flex-direction: column; gap: 2rem; }
   .pr-loading { text-align: center; padding: 6rem; color: var(--gray-400); }
 
-  /* Top bar */
-  .pr-topbar { display: flex; justify-content: space-between; align-items: center; }
-  .pr-back { font-size: .875rem; font-weight: 700; color: var(--gray-600); transition: color .15s; }
-  .pr-back:hover { color: var(--black); }
-  .pr-logout { background: none; border: none; cursor: pointer; font-family: var(--font); font-size: .875rem; font-weight: 600; color: var(--gray-400); transition: color .15s; }
-  .pr-logout:hover { color: var(--red); }
 
   /* Identity */
   .pr-identity { display: flex; align-items: center; gap: 1.25rem; background: var(--black); border-radius: 16px; padding: 1.75rem 2rem; }

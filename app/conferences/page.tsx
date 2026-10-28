@@ -110,7 +110,6 @@ export default function ConferencesPage() {
       <div className="cp-header">
         <div className="cp-header-top">
           <p className="cp-eyebrow">NCIMUN</p>
-          <Link href="/" className="cp-back">← Home</Link>
         </div>
         <h1 className="cp-title">Conferences</h1>
         <p className="cp-subtitle">
@@ -164,8 +163,6 @@ export default function ConferencesPage() {
         .cp-header{margin-bottom:3rem;}
         .cp-header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;}
         .cp-eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);}
-        .cp-back{font-size:.875rem;font-weight:700;color:var(--gray-600);transition:color .15s;}
-        .cp-back:hover{color:var(--black);}
         .cp-title{font-size:clamp(2rem,5vw,3rem);font-weight:900;letter-spacing:-.02em;margin-bottom:.75rem;}
         .cp-subtitle{font-size:1rem;color:var(--gray-600);line-height:1.6;max-width:520px;}
         .cp-auth-banner{margin-top:1.5rem;background:rgba(95,150,202,.08);border:1.5px solid rgba(95,150,202,.2);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.9rem;}

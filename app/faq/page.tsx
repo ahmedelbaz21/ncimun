@@ -127,14 +127,6 @@ export default function FAQPage() {
   return (
     <main className="fq-root">
       {/* ── Nav ── */}
-      <nav className="fq-nav">
-        <div className="fq-nav-inner">
-          <Link href="/">
-            <img src="/logo.png" alt="NCIMUN" className="fq-nav-logo" />
-          </Link>
-          <Link href="/" className="fq-nav-back">← Back to homepage</Link>
-        </div>
-      </nav>
 
       {/* ── Header ── */}
       <div className="fq-header">
@@ -198,18 +190,6 @@ export default function FAQPage() {
         body { font-family: var(--font); background: var(--gray-50); color: var(--black); }
         a { text-decoration: none; color: inherit; }
 
-        /* Nav */
-        .fq-nav {
-          background: var(--white); border-bottom: 1px solid var(--gray-200);
-          position: sticky; top: 0; z-index: 100;
-        }
-        .fq-nav-inner {
-          max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-          height: 64px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .fq-nav-logo { height: 36px; display: block; }
-        .fq-nav-back { font-size: .875rem; font-weight: 600; color: var(--gray-600); transition: color .15s; }
-        .fq-nav-back:hover { color: var(--black); }
 
         /* Header */
         .fq-header { background: var(--black); padding: 5rem 2rem; }

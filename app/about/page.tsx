@@ -5,14 +5,6 @@ export default function AboutPage() {
   return (
     <main className="ab-root">
       {/* ── Nav ── */}
-      <nav className="ab-nav">
-        <div className="ab-nav-inner">
-          <Link href="/">
-            <img src="/logo.png" alt="NCIMUN" className="ab-nav-logo" />
-          </Link>
-          <Link href="/" className="ab-nav-back">← Back to homepage</Link>
-        </div>
-      </nav>
 
       {/* ── Hero ── */}
       <section className="ab-hero">
@@ -162,18 +154,6 @@ export default function AboutPage() {
         body { font-family: var(--font); color: var(--black); background: var(--white); }
         a { text-decoration: none; color: inherit; }
 
-        /* Nav */
-        .ab-nav {
-          background: var(--white); border-bottom: 1px solid var(--gray-200);
-          position: sticky; top: 0; z-index: 100;
-        }
-        .ab-nav-inner {
-          max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-          height: 64px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .ab-nav-logo { height: 36px; display: block; }
-        .ab-nav-back { font-size: .875rem; font-weight: 600; color: var(--gray-600); transition: color .15s; }
-        .ab-nav-back:hover { color: var(--black); }
 
         /* Hero */
         .ab-hero {

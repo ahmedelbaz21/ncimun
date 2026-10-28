@@ -43,14 +43,6 @@ export default function TransportationPage() {
   return (
     <main className="tr-root">
       {/* ── Nav ── */}
-      <nav className="tr-nav">
-        <div className="tr-nav-inner">
-          <Link href="/">
-            <img src="/logo.png" alt="NCIMUN" className="tr-nav-logo" />
-          </Link>
-          <Link href="/" className="tr-nav-back">← Back to homepage</Link>
-        </div>
-      </nav>
 
       {/* ── Header ── */}
       <div className="tr-header">
@@ -148,18 +140,6 @@ export default function TransportationPage() {
         body { font-family: var(--font); background: var(--gray-50); color: var(--black); }
         a { text-decoration: none; color: inherit; }
 
-        /* Nav */
-        .tr-nav {
-          background: var(--white); border-bottom: 1px solid var(--gray-200);
-          position: sticky; top: 0; z-index: 100;
-        }
-        .tr-nav-inner {
-          max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-          height: 64px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .tr-nav-logo { height: 36px; display: block; }
-        .tr-nav-back { font-size: .875rem; font-weight: 600; color: var(--gray-600); transition: color .15s; }
-        .tr-nav-back:hover { color: var(--black); }
 
         /* Header */
         .tr-header { background: var(--black); padding: 5rem 2rem; }

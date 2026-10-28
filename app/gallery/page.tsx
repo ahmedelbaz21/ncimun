@@ -1,77 +1,83 @@
-import Link from 'next/link';
-import Image from 'next/image';
+'use client';
 
-export default function ComingSoonPage() {
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+import { photoUrl, formatAlbumDate, GALLERY_STYLES } from './shared';
+
+type Album = {
+  id: number;
+  slug: string;
+  title: string;
+  event_date: string | null;
+  cover_photo: string | null;
+  gallery_photos: { count: number }[];
+};
+
+export default function GalleryPage() {
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('gallery_albums')
+      .select('id, slug, title, event_date, cover_photo, gallery_photos(count)')
+      .order('sort_order')
+      .order('event_date', { ascending: false })
+      .then(({ data }) => {
+        if (data) setAlbums(data as Album[]);
+        setLoading(false);
+      });
+  }, []);
+
   return (
-    <main className="cs-root">
-      <div className="cs-card">
-        <Image src="/logo.png" alt="NCIMUN" width={80} height={80} className="cs-logo" />
-        <div className="cs-badge">Coming soon</div>
-        <h1 className="cs-title">We're working on it</h1>
-        <p className="cs-desc">
-          This page is currently under construction. Check back soon — we're building something great.
-        </p>
-        <Link href="/" className="cs-btn">← Back to homepage</Link>
+    <main>
+      <section className="ga-hero">
+        <span className="ga-eyebrow">Gallery</span>
+        <h1 className="ga-title">Moments from our conferences</h1>
+        <p className="ga-subtitle">Debates, ceremonies and everything in between.</p>
+      </section>
+
+      <div className="ga-container">
+        {loading ? (
+          <p className="ga-status">Loading albums…</p>
+        ) : albums.length === 0 ? (
+          <p className="ga-status">No albums yet — check back after our next conference.</p>
+        ) : (
+          <div className="ga-albums">
+            {albums.map(album => {
+              const count = album.gallery_photos?.[0]?.count ?? 0;
+              return (
+                <Link key={album.id} href={`/gallery/${album.slug}`} className="ga-album">
+                  <div className="ga-album-cover">
+                    {album.cover_photo && (
+                      <img src={photoUrl(album.cover_photo.replace('/full/', '/thumb/'))} alt={album.title} loading="lazy" />
+                    )}
+                  </div>
+                  <div className="ga-album-info">
+                    <h2 className="ga-album-title">{album.title}</h2>
+                    <p className="ga-album-meta">
+                      {formatAlbumDate(album.event_date)}{album.event_date && ' · '}{count} photos
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <style>{`
-        :root {
-          --blue:  #5F96CA;
-          --aqua:  #84DBD5;
-          --black: #23272A;
-          --white: #FFFFFF;
-          --gray-50:  #F8F9FA;
-          --gray-200: #E9ECEF;
-          --gray-600: #6C757D;
-          --font: 'Avenir', 'Avenir Next', 'Century Gothic', sans-serif;
-          --shadow: 0 4px 24px rgba(35,39,42,.08);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: var(--font); background: var(--black); color: var(--white); }
-        a { text-decoration: none; }
-
-        .cs-root {
-          min-height: 100vh;
-          display: flex; align-items: center; justify-content: center;
-          padding: 2rem;
-          background: var(--black);
-        }
-
-        .cs-card {
-          display: flex; flex-direction: column; align-items: center;
-          text-align: center; gap: 1.25rem; max-width: 480px;
-        }
-
-        .cs-logo { margin-bottom: .5rem; }
-
-        .cs-badge {
-          display: inline-block;
-          background: var(--aqua); color: var(--black);
-          font-size: .75rem; font-weight: 800; letter-spacing: .12em;
-          text-transform: uppercase; padding: .35rem 1rem; border-radius: 999px;
-        }
-
-        .cs-title {
-          font-size: clamp(1.75rem, 5vw, 2.5rem);
-          font-weight: 900; color: var(--white);
-          letter-spacing: -.02em; line-height: 1.1;
-        }
-
-        .cs-desc {
-          font-size: 1rem; color: rgba(255,255,255,.55);
-          line-height: 1.7; max-width: 360px;
-        }
-
-        .cs-btn {
-          margin-top: .5rem;
-          border: 1.5px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7);
-          padding: .65rem 1.5rem; border-radius: 8px;
-          font-size: .9rem; font-weight: 600; font-family: var(--font);
-          transition: border-color .15s, color .15s;
-          display: inline-block;
-        }
-        .cs-btn:hover { border-color: var(--aqua); color: var(--aqua); }
+      <style>{GALLERY_STYLES + `
+        .ga-albums { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+        .ga-album { display: block; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--gray-200); background: var(--white); transition: box-shadow .2s, transform .2s; }
+        .ga-album:hover { box-shadow: 0 8px 32px rgba(35,39,42,.12); transform: translateY(-2px); }
+        .ga-album-cover { aspect-ratio: 16 / 10; background: var(--gray-50); overflow: hidden; }
+        .ga-album-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s; }
+        .ga-album:hover .ga-album-cover img { transform: scale(1.03); }
+        .ga-album-info { padding: 1.125rem 1.25rem 1.25rem; }
+        .ga-album-title { font-size: 1.0625rem; font-weight: 800; }
+        .ga-album-meta { font-size: .8125rem; color: var(--gray-600); margin-top: .25rem; font-weight: 600; }
+        @media (max-width: 600px) { .ga-albums { grid-template-columns: 1fr; } }
       `}</style>
     </main>
   );

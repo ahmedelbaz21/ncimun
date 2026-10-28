@@ -36,14 +36,6 @@ export default function ContactPage() {
   return (
     <main className="cp-root">
       {/* ── Nav ── */}
-      <nav className="cp-nav">
-        <div className="cp-nav-inner">
-          <Link href="/">
-            <img src="/logo.png" alt="NCIMUN" className="cp-nav-logo" />
-          </Link>
-          <Link href="/" className="cp-nav-back">← Back to homepage</Link>
-        </div>
-      </nav>
 
       <div className="cp-layout">
         {/* ── Left: Info ── */}
@@ -180,18 +172,6 @@ export default function ContactPage() {
         body { font-family: var(--font); background: var(--gray-50); color: var(--black); }
         a { text-decoration: none; color: inherit; }
 
-        /* Nav */
-        .cp-nav {
-          background: var(--white); border-bottom: 1px solid var(--gray-200);
-          position: sticky; top: 0; z-index: 100;
-        }
-        .cp-nav-inner {
-          max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-          height: 64px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .cp-nav-logo { height: 36px; display: block; }
-        .cp-nav-back { font-size: .875rem; font-weight: 600; color: var(--gray-600); transition: color .15s; }
-        .cp-nav-back:hover { color: var(--black); }
 
         /* Layout */
         .cp-layout {

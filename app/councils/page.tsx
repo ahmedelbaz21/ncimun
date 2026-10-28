@@ -49,14 +49,6 @@ export default function CouncilsPage() {
   return (
     <main className="co-root">
       {/* ── Nav ── */}
-      <nav className="co-nav">
-        <div className="co-nav-inner">
-          <Link href="/">
-            <img src="/logo.png" alt="NCIMUN" className="co-nav-logo" />
-          </Link>
-          <Link href="/" className="co-nav-back">← Back to homepage</Link>
-        </div>
-      </nav>
 
       {/* ── Header ── */}
       <div className="co-header">
@@ -127,18 +119,6 @@ export default function CouncilsPage() {
         body { font-family: var(--font); background: var(--gray-50); color: var(--black); }
         a { text-decoration: none; color: inherit; }
 
-        /* Nav */
-        .co-nav {
-          background: var(--white); border-bottom: 1px solid var(--gray-200);
-          position: sticky; top: 0; z-index: 100;
-        }
-        .co-nav-inner {
-          max-width: 1100px; margin: 0 auto; padding: 0 2rem;
-          height: 64px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .co-nav-logo { height: 36px; display: block; }
-        .co-nav-back { font-size: .875rem; font-weight: 600; color: var(--gray-600); transition: color .15s; }
-        .co-nav-back:hover { color: var(--black); }
 
         /* Header */
         .co-header { background: var(--black); padding: 5rem 2rem; }

@@ -1,106 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function HomePage() {
-  const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push('/');
-    setMenuOpen(false);
-  };
-
-  const NAV_LINKS = [
-    { href: '/about', label: 'About' },
-    { href: '/conferences', label: 'Conferences' },
-    { href: '/councils', label: 'Councils' },
-    { href: '/transportation', label: 'Transportation' },
-    { href: '/gallery', label: 'Gallery' },
-    { href: '/store', label: 'Store' },
-    { href: '/faq', label: 'FAQ' },
-    { href: '/contact', label: 'Contact' },
-  ];
-
   return (
     <>
-      {/* ─── Navbar ─── */}
-      <nav className="nav">
-        <div className="nav-inner">
-          <Link href="/" className="nav-logo-link">
-            <img src="/logo.png" alt="NCIMUN" className="nav-logo" />
-          </Link>
-          <div className="nav-links">
-            {NAV_LINKS.map(l => (
-              <Link key={l.href} href={l.href} className="nav-link">{l.label}</Link>
-            ))}
-          </div>
-          <div className="nav-actions">
-            {user ? (
-              <>
-                <Link href="/profile" className="nav-profile" title="My Profile">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                  </svg>
-                </Link>
-                <button className="nav-logout" onClick={handleLogout}>Log out</button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="nav-login">Log in</Link>
-                <Link href="/register" className="nav-register">Register</Link>
-              </>
-            )}
-            <button
-              className="nav-burger"
-              onClick={() => setMenuOpen(o => !o)}
-              aria-label="Toggle menu"
-            >
-              <span className={menuOpen ? 'burger-top-open' : ''} />
-              <span className={menuOpen ? 'burger-mid-open' : ''} />
-              <span className={menuOpen ? 'burger-bot-open' : ''} />
-            </button>
-          </div>
-        </div>
-
-        {/* Drawer */}
-        <div className={`drawer ${menuOpen ? 'drawer-open' : ''}`}>
-          <div className="drawer-inner">
-            {NAV_LINKS.map(l => (
-              <Link key={l.href} href={l.href} className="drawer-link" onClick={() => setMenuOpen(false)}>{l.label}</Link>
-            ))}
-            <div className="drawer-div" />
-            {user ? (
-              <>
-                <Link href="/profile" className="drawer-link" onClick={() => setMenuOpen(false)}>My profile</Link>
-                <button className="drawer-link drawer-logout" onClick={handleLogout}>Log out</button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="drawer-link" onClick={() => setMenuOpen(false)}>Log in</Link>
-                <Link href="/register" className="drawer-link drawer-cta" onClick={() => setMenuOpen(false)}>Register</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-      {menuOpen && <div className="backdrop" onClick={() => setMenuOpen(false)} />}
-
       <main>
         {/* ─── Hero ─── */}
         <section className="hero">
@@ -278,97 +182,6 @@ export default function HomePage() {
         body { font-family: var(--font); color: var(--black); background: var(--white); }
         a { text-decoration: none; color: inherit; }
         img { display: block; }
-
-        /* ── NAV ── */
-        .nav {
-          position: sticky; top: 0; z-index: 200;
-          background: var(--black);
-          border-bottom: 1px solid rgba(255,255,255,.08);
-        }
-        .nav-inner {
-          max-width: 1200px; margin: 0 auto; padding: 0 2rem;
-          height: 68px; display: flex; align-items: center; gap: 2rem;
-        }
-        .nav-logo-link { flex-shrink: 0; }
-        .nav-logo { height: 38px; }
-        .nav-links { display: flex; gap: 1.5rem; flex: 1; }
-        .nav-link { font-size: .8125rem; font-weight: 600; color: rgba(255,255,255,.6); transition: color .15s; }
-        .nav-link:hover { color: var(--white); }
-        .nav-actions { display: flex; gap: .75rem; align-items: center; }
-
-        .nav-profile {
-          width: 34px; height: 34px; border-radius: 50%;
-          background: rgba(132,219,213,.15); color: var(--aqua);
-          display: flex; align-items: center; justify-content: center;
-          transition: background .15s;
-        }
-        .nav-profile:hover { background: rgba(132,219,213,.25); }
-
-        .nav-login {
-          font-size: .8125rem; font-weight: 600; color: rgba(255,255,255,.65);
-          padding: .45rem .875rem; border-radius: 6px; transition: color .15s;
-        }
-        .nav-login:hover { color: var(--white); }
-
-        .nav-logout {
-          font-size: .8125rem; font-weight: 600; color: rgba(255,255,255,.65);
-          padding: .45rem .875rem; border-radius: 6px; background: none; border: none;
-          cursor: pointer; font-family: var(--font); transition: color .15s;
-        }
-        .nav-logout:hover { color: var(--white); }
-
-        .nav-register {
-          font-size: .8125rem; font-weight: 700; color: var(--black);
-          background: var(--aqua); padding: .45rem 1.125rem; border-radius: 6px;
-          transition: opacity .15s;
-        }
-        .nav-register:hover { opacity: .88; }
-
-        /* Burger */
-        .nav-burger {
-          display: none; flex-direction: column; gap: 5px;
-          width: 36px; height: 36px; align-items: center; justify-content: center;
-          background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px;
-        }
-        .nav-burger span {
-          display: block; width: 20px; height: 2px;
-          background: rgba(255,255,255,.8); border-radius: 2px;
-          transition: transform .25s, opacity .2s; transform-origin: center;
-        }
-        .burger-top-open { transform: translateY(7px) rotate(45deg) !important; }
-        .burger-mid-open { opacity: 0 !important; transform: scaleX(0) !important; }
-        .burger-bot-open { transform: translateY(-7px) rotate(-45deg) !important; }
-
-        /* Drawer */
-        .drawer {
-          position: fixed; top: 68px; right: 0;
-          width: 280px; height: calc(100vh - 68px);
-          background: var(--black); border-left: 1px solid rgba(255,255,255,.08);
-          transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
-          z-index: 199; overflow-y: auto;
-        }
-        .drawer-open { transform: translateX(0); }
-        .drawer-inner { display: flex; flex-direction: column; padding: 1rem 0; }
-        .drawer-link {
-          display: block; padding: .875rem 1.5rem;
-          font-size: .9375rem; font-weight: 500; color: rgba(255,255,255,.7);
-          transition: color .12s, background .12s;
-          background: none; border: none; cursor: pointer; text-align: left;
-          font-family: var(--font); width: 100%;
-        }
-        .drawer-link:hover { color: var(--white); background: rgba(255,255,255,.05); }
-        .drawer-div { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: .5rem 0; }
-        .drawer-cta {
-          margin: .5rem 1rem 0; background: var(--aqua); color: var(--black) !important;
-          border-radius: 8px; text-align: center; font-weight: 700; padding: .75rem 1rem;
-        }
-        .drawer-cta:hover { opacity: .88; background: var(--aqua) !important; }
-        .drawer-logout { color: rgba(229,83,75,.8) !important; }
-        .drawer-logout:hover { color: #E5534B !important; }
-        .backdrop {
-          position: fixed; inset: 0; z-index: 198;
-          background: rgba(0,0,0,.6);
-        }
 
         /* ── HERO ── */
         .hero {
@@ -567,11 +380,6 @@ export default function HomePage() {
           .values-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
-          .nav-links { display: none; }
-          .nav-actions .nav-login,
-          .nav-actions .nav-logout,
-          .nav-actions .nav-register { display: none; }
-          .nav-burger { display: flex; }
           .hero-logo { height: 90px; }
           .date-sep { display: none; }
           .hero-dates-inner { gap: 0; }
