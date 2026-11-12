@@ -82,6 +82,23 @@ const DAY_TYPE_LABELS: Record<string, string> = {
 };
 const DAY_TYPE_ORDER = Object.keys(DAY_TYPE_LABELS);
 
+type StoreOrder = {
+  id: number;
+  status: string;
+  fulfilment: 'pickup' | 'delivery';
+  total: number;
+  created_at: string;
+  store_order_items: { product_name: string; size: string; quantity: number }[];
+};
+
+const ORDER_STATUS: Record<string, string> = {
+  paid: '✓ Paid — being prepared',
+  ready: '📦 Ready',
+  delivered: '✓ Delivered',
+  flagged: '⚠️ Payment issue — contact us',
+  cancelled: 'Cancelled',
+};
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -110,6 +127,7 @@ export default function ProfilePage() {
   const [savingTransport, setSavingTransport] = useState(false);
   const [transportSaved, setTransportSaved] = useState<number | null>(null);
   const [transportError, setTransportError] = useState<string | null>(null);
+  const [orders, setOrders] = useState<StoreOrder[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -166,6 +184,14 @@ export default function ProfilePage() {
 
         if (selectionData) setTransportSelections(selectionData);
       }
+
+      const { data: orderData } = await supabase
+        .from('store_orders')
+        .select('id, status, fulfilment, total, created_at, store_order_items(product_name, size, quantity)')
+        .eq('delegate_id', profileData.id)
+        .order('created_at', { ascending: false });
+
+      if (orderData) setOrders(orderData);
       setLoading(false);
     };
     load();
@@ -448,6 +474,32 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* ── Store orders ── */}
+      {orders.length > 0 && (
+        <div className="pr-section">
+          <div className="pr-section-head">
+            <h2 className="pr-section-title">My orders</h2>
+            <Link href="/store" className="pr-btn-outline">Store →</Link>
+          </div>
+          <div className="pr-orders">
+            {orders.map(o => (
+              <div key={o.id} className="pr-order">
+                <div className="pr-order-head">
+                  <span className="pr-order-id">Order #{o.id}</span>
+                  <span className={`pr-order-status pr-order-status--${o.status}`}>{ORDER_STATUS[o.status] ?? o.status}</span>
+                </div>
+                <p className="pr-order-items">
+                  {o.store_order_items.map(i => `${i.quantity}× ${i.product_name} (${i.size})`).join(', ')}
+                </p>
+                <p className="pr-order-meta">
+                  {o.fulfilment === 'pickup' ? '📍 Pickup at Volume 7 Part 2' : '🚚 Delivery'} · {o.total.toLocaleString()} EGP · {formatDate(o.created_at)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Profile info ── */}
       <div className="pr-section">
         <h2 className="pr-section-title">Profile</h2>
@@ -668,6 +720,17 @@ const BASE_STYLES = `
   .pr-btn-pay:hover { opacity: .88; }
   .pr-btn-ghost-dark { background: none; border: none; cursor: pointer; font-family: var(--font); font-size: .875rem; font-weight: 600; color: var(--gray-600); padding: .65rem 1rem; transition: color .15s; }
   .pr-btn-ghost-dark:hover { color: var(--black); }
+
+  /* Store orders */
+  .pr-orders { display: flex; flex-direction: column; gap: .75rem; }
+  .pr-order { background: var(--white); border: 1.5px solid var(--gray-200); border-radius: 14px; padding: 1.125rem 1.25rem; display: flex; flex-direction: column; gap: .35rem; }
+  .pr-order-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+  .pr-order-id { font-weight: 800; font-size: .9375rem; }
+  .pr-order-status { font-size: .75rem; font-weight: 700; padding: .25rem .65rem; border-radius: 999px; background: rgba(45,155,111,.12); color: var(--green); }
+  .pr-order-status--flagged { background: rgba(229,83,75,.1); color: var(--red); }
+  .pr-order-status--cancelled { background: var(--gray-100); color: var(--gray-600); }
+  .pr-order-items { font-size: .875rem; font-weight: 600; }
+  .pr-order-meta { font-size: .8125rem; color: var(--gray-600); }
 
   /* Info card */
   .pr-info-card { background: var(--white); border: 1.5px solid var(--gray-200); border-radius: 14px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }

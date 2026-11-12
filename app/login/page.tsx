@@ -46,7 +46,9 @@ export default function LoginPage() {
       } else if (email.toLowerCase() === 'hanan.sameer@continental.ms') {
         window.location.href = '/continental-dashboard';
       } else {
-        window.location.href = '/conferences';
+        // Return to the page that sent them here (e.g. store checkout), otherwise conferences
+        const next = new URLSearchParams(window.location.search).get('next');
+        window.location.href = next && next.startsWith('/') && !next.startsWith('//') ? next : '/conferences';
       }
   };
 
