@@ -21,6 +21,11 @@ export default function AdminLanding() {
             <span className="al-label">Part 2 Dashboard</span>
             <span className="al-arrow">→</span>
           </Link>
+          <Link href="/admin-bazisthebest/store" className="al-card">
+            <span className="al-week">Store</span>
+            <span className="al-label">Merch orders &amp; stock</span>
+            <span className="al-arrow">→</span>
+          </Link>
         </div>
       </div>
 
