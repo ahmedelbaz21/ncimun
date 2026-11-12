@@ -14,6 +14,7 @@ type Photo = {
   thumb_path: string;
   width: number;
   height: number;
+  section: string | null;
 };
 
 export default function AlbumPage() {
@@ -22,6 +23,7 @@ export default function AlbumPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<number | null>(null);
+  const [section, setSection] = useState<string | null>(null);
   const touchX = useRef<number | null>(null);
 
   useEffect(() => {
@@ -36,20 +38,27 @@ export default function AlbumPage() {
         setAlbum(albumData);
         const { data: photoData } = await supabase
           .from('gallery_photos')
-          .select('id, path, thumb_path, width, height')
+          .select('id, path, thumb_path, width, height, section')
           .eq('album_id', albumData.id)
           .order('sort_order');
-        if (photoData) setPhotos(photoData);
+        if (photoData) {
+          setPhotos(photoData);
+          setSection(photoData.find(p => p.section)?.section ?? null);
+        }
       }
       setLoading(false);
     };
     load();
   }, [slug]);
 
+  // Albums split into sections (e.g. days) show one section at a time, so only its photos load
+  const sections = [...new Set(photos.map(p => p.section).filter((s): s is string => !!s))];
+  const visible = sections.length > 0 ? photos.filter(p => p.section === section) : photos;
+
   const close = useCallback(() => setOpen(null), []);
   const step = useCallback((dir: number) => {
-    setOpen(i => (i === null ? null : (i + dir + photos.length) % photos.length));
-  }, [photos.length]);
+    setOpen(i => (i === null ? null : (i + dir + visible.length) % visible.length));
+  }, [visible.length]);
 
   // Keyboard controls and scroll lock while the viewer is open
   useEffect(() => {
@@ -69,14 +78,14 @@ export default function AlbumPage() {
 
   // Preload the neighbours so swiping feels instant
   useEffect(() => {
-    if (open === null || photos.length < 2) return;
+    if (open === null || visible.length < 2) return;
     [1, -1].forEach(d => {
       const img = new Image();
-      img.src = photoUrl(photos[(open + d + photos.length) % photos.length].path);
+      img.src = photoUrl(visible[(open + d + visible.length) % visible.length].path);
     });
-  }, [open, photos]);
+  }, [open, visible]);
 
-  const current = open !== null ? photos[open] : null;
+  const current = open !== null ? visible[open] : null;
 
   return (
     <main>
@@ -98,9 +107,25 @@ export default function AlbumPage() {
             <p className="ga-subtitle">{photos.length} photos</p>
           </section>
 
+          {sections.length > 0 && (
+            <div className="ga-sections">
+              <div className="ga-sections-inner">
+                {sections.map(s => (
+                  <button
+                    key={s}
+                    className={`ga-section-tab ${section === s ? 'ga-section-tab--active' : ''}`}
+                    onClick={() => { setSection(s); setOpen(null); }}
+                  >
+                    {s} <span className="ga-section-count">{photos.filter(p => p.section === s).length}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="ga-container">
             <div className="ga-grid">
-              {photos.map((p, i) => (
+              {visible.map((p, i) => (
                 <button key={p.id} className="ga-photo" onClick={() => setOpen(i)} aria-label={`Open photo ${i + 1}`}>
                   <img src={photoUrl(p.thumb_path)} alt="" loading="lazy" />
                 </button>
@@ -123,7 +148,7 @@ export default function AlbumPage() {
           }}
         >
           <button className="ga-viewer-close" onClick={close} aria-label="Close">✕</button>
-          <span className="ga-viewer-count">{open + 1} / {photos.length}</span>
+          <span className="ga-viewer-count">{section ? `${section} · ` : ''}{open + 1} / {visible.length}</span>
           <button className="ga-viewer-nav ga-viewer-nav--prev" onClick={e => { e.stopPropagation(); step(-1); }} aria-label="Previous photo">‹</button>
           <img
             key={current.id}
@@ -140,6 +165,13 @@ export default function AlbumPage() {
         .ga-hero--cover { background-size: cover; background-position: center 35%; padding: 8rem 2rem 6rem; }
         .ga-hero--cover .ga-subtitle { color: rgba(255,255,255,.8); }
         .ga-link { display: inline-block; margin-top: 1rem; color: var(--blue); font-weight: 700; }
+
+        .ga-sections { position: sticky; top: 68px; z-index: 50; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); border-bottom: 1px solid var(--gray-200); }
+        .ga-sections-inner { max-width: 1200px; margin: 0 auto; padding: .75rem 2rem; display: flex; gap: .5rem; overflow-x: auto; scrollbar-width: none; }
+        .ga-section-tab { flex-shrink: 0; display: inline-flex; align-items: center; gap: .4rem; padding: .5rem 1rem; border-radius: 999px; border: 1.5px solid var(--gray-200); background: var(--white); font-family: var(--font); font-size: .875rem; font-weight: 700; color: var(--black); cursor: pointer; transition: border-color .15s; }
+        .ga-section-tab:hover { border-color: var(--gray-400); }
+        .ga-section-tab--active { background: var(--black); border-color: var(--black); color: var(--white); }
+        .ga-section-count { font-size: .75rem; font-weight: 600; opacity: .6; }
 
         .ga-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
         .ga-photo { display: block; width: 100%; aspect-ratio: 3 / 2; padding: 0; border: none; background: var(--gray-50); border-radius: 10px; overflow: hidden; cursor: zoom-in; }
@@ -160,6 +192,7 @@ export default function AlbumPage() {
         @media (max-width: 900px) { .ga-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 600px) {
           .ga-grid { gap: .5rem; }
+          .ga-sections-inner { padding: .625rem 1rem; }
           .ga-hero--cover { padding: 5rem 1rem 4rem; }
           .ga-photo { border-radius: 6px; }
           .ga-viewer { padding: 3.5rem .5rem; }
